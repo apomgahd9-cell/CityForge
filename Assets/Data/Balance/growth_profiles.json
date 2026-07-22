@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "version": 1,
+  "description": "Growth stage rules and models. Tags connect profiles to zones. Services referenced by ID.",
+  "profiles": {
+    "residential_default": {
+      "displayName": "Residential Default Growth",
+      "tags": ["residential"],
+      "stages": [
+        {
+          "level": 1,
+          "label": "Low Density",
+          "upgradeTarget": "next",
+          "downgradeTarget": "previous",
+          "rules": [
+            { "type": "service_available", "serviceId": "electricity" },
+            { "type": "service_available", "serviceId": "water" },
+            { "type": "metric_min", "metric": "land_value", "value": 30 },
+            { "type": "metric_min", "metric": "residential_demand", "value": 10 },
+            { "type": "metric_min", "metric": "happiness", "value": 40 }
+          ],
+          "growthModel": "residential_standard",
+          "declineRules": [
+            { "type": "metric_max", "metric": "happiness", "value": 20 },
+            { "type": "metric_max", "metric": "land_value", "value": 10 }
+          ],
+          "declineModel": "standard_decline"
+        },
+        {
+          "level": 2,
+          "label": "Medium Density",
+          "upgradeTarget": "next",
+          "downgradeTarget": "previous",
+          "rules": [
+            { "type": "service_available", "serviceId": "electricity" },
+            { "type": "service_available", "serviceId": "water" },
+            { "type": "service_available", "serviceId": "education" },
+            { "type": "metric_min", "metric": "land_value", "value": 50 },
+            { "type": "metric_min", "metric": "residential_demand", "value": 20 },
+            { "type": "metric_min", "metric": "happiness", "value": 50 }
+          ],
+          "growthModel": "residential_standard",
+          "declineRules": [
+            { "type": "metric_max", "metric": "happiness", "value": 30 },
+            { "type": "metric_max", "metric": "land_value", "value": 20 }
+          ],
+          "declineModel": "standard_decline"
+        },
+        {
+          "level": 3,
+          "label": "High Density",
+          "upgradeTarget": null,
+          "downgradeTarget": "previous",
+          "rules": [
+            { "type": "service_available", "serviceId": "electricity" },
+            { "type": "service_available", "serviceId": "water" },
+            { "type": "service_available", "serviceId": "education" },
+            { "type": "service_available", "serviceId": "health" },
+            { "type": "metric_min", "metric": "land_value", "value": 70 },
+            { "type": "metric_min", "metric": "residential_demand", "value": 30 },
+            { "type": "metric_min", "metric": "happiness", "value": 60 }
+          ],
+          "growthModel": "residential_standard",
+          "declineRules": [
+            { "type": "metric_max", "metric": "happiness", "value": 40 },
+            { "type": "metric_max", "metric": "land_value", "value": 30 }
+          ],
+          "declineModel": "standard_decline"
+        }
+      ]
+    },
+    "commercial_default": {
+      "displayName": "Commercial Default Growth",
+      "tags": ["commercial"],
+      "stages": [
+        {
+          "level": 1,
+          "label": "Small Shops",
+          "upgradeTarget": "next",
+          "downgradeTarget": "previous",
+          "rules": [
+            { "type": "service_available", "serviceId": "electricity" },
+            { "type": "service_available", "serviceId": "water" },
+            { "type": "metric_min", "metric": "commercial_demand", "value": 10 },
+            { "type": "metric_min", "metric": "customer_access", "value": 20 },
+            { "type": "metric_min", "metric": "land_value", "value": 30 }
+          ],
+          "growthModel": "commercial_standard",
+          "declineRules": [
+            { "type": "metric_max", "metric": "customer_access", "value": 5 },
+            { "type": "metric_max", "metric": "land_value", "value": 10 }
+          ],
+          "declineModel": "standard_decline"
+        },
+        {
+          "level": 2,
+          "label": "Medium Commerce",
+          "upgradeTarget": "next",
+          "downgradeTarget": "previous",
+          "rules": [
+            { "type": "service_available", "serviceId": "electricity" },
+            { "type": "service_available", "serviceId": "water" },
+            { "type": "service_available", "serviceId": "police" },
+            { "type": "metric_min", "metric": "commercial_demand", "value": 20 },
+            { "type": "metric_min", "metric": "customer_access", "value": 40 },
+            { "type": "metric_min", "metric": "land_value", "value": 50 }
+          ],
+          "growthModel": "commercial_standard",
+          "declineRules": [
+            { "type": "metric_max", "metric": "customer_access", "value": 15 },
+            { "type": "metric_max", "metric": "land_value", "value": 20 }
+          ],
+          "declineModel": "standard_decline"
+        },
+        {
+          "level": 3,
+          "label": "High Density Commercial",
+          "upgradeTarget": null,
+          "downgradeTarget": "previous",
+          "rules": [
+            { "type": "service_available", "serviceId": "electricity" },
+            { "type": "service_available", "serviceId": "water" },
+            { "type": "service_available", "serviceId": "police" },
+            { "type": "service_available", "serviceId": "fire" },
+            { "type": "metric_min", "metric": "commercial_demand", "value": 30 },
+            { "type": "metric_min", "metric": "customer_access", "value": 60 },
+            { "type": "metric_min", "metric": "land_value", "value": 70 }
+          ],
+          "growthModel": "commercial_standard",
+          "declineRules": [
+            { "type": "metric_max", "metric": "customer_access", "value": 25 },
+            { "type": "metric_max", "metric": "land_value", "value": 30 }
+          ],
+          "declineModel": "standard_decline"
+        }
+      ]
+    },
+    "industrial_default": {
+      "displayName": "Industrial Default Growth",
+      "tags": ["industrial"],
+      "stages": [
+        {
+          "level": 1,
+          "label": "Light Industry",
+          "upgradeTarget": "next",
+          "downgradeTarget": "previous",
+          "rules": [
+            { "type": "service_available", "serviceId": "electricity" },
+            { "type": "service_available", "serviceId": "water" },
+            { "type": "metric_min", "metric": "industrial_demand", "value": 10 },
+            { "type": "metric_min", "metric": "freight_access", "value": 10 }
+          ],
+          "growthModel": "industrial_standard",
+          "declineRules": [
+            { "type": "metric_max", "metric": "freight_access", "value": 2 }
+          ],
+          "declineModel": "standard_decline"
+        },
+        {
+          "level": 2,
+          "label": "Heavy Industry",
+          "upgradeTarget": "next",
+          "downgradeTarget": "previous",
+          "rules": [
+            { "type": "service_available", "serviceId": "electricity" },
+            { "type": "service_available", "serviceId": "water" },
+            { "type": "service_available", "serviceId": "fire" },
+            { "type": "metric_min", "metric": "industrial_demand", "value": 20 },
+            { "type": "metric_min", "metric": "freight_access", "value": 25 }
+          ],
+          "growthModel": "industrial_standard",
+          "declineRules": [
+            { "type": "metric_max", "metric": "freight_access", "value": 10 }
+          ],
+          "declineModel": "standard_decline"
+        },
+        {
+          "level": 3,
+          "label": "High-Tech Industry",
+          "upgradeTarget": null,
+          "downgradeTarget": "previous",
+          "rules": [
+            { "type": "service_available", "serviceId": "electricity" },
+            { "type": "service_available", "serviceId": "water" },
+            { "type": "service_available", "serviceId": "fire" },
+            { "type": "service_available", "serviceId": "education" },
+            { "type": "metric_min", "metric": "industrial_demand", "value": 30 },
+            { "type": "metric_min", "metric": "freight_access", "value": 40 }
+          ],
+          "growthModel": "industrial_standard",
+          "declineRules": [
+            { "type": "metric_max", "metric": "freight_access", "value": 20 }
+          ],
+          "declineModel": "standard_decline"
+        }
+      ]
+    }
+  }
+}

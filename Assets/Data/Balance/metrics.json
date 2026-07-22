@@ -1,0 +1,102 @@
+{
+  "version": 1,
+  "description": "Global simulation metrics. All systems read from this dictionary.",
+  "metrics": {
+    "land_value": {
+      "id": "land_value",
+      "displayName": "قيمة الأرض",
+      "type": "numeric",
+      "range": { "min": 0, "max": 100 },
+      "default": 30,
+      "description": "Affects growth and desirability."
+    },
+    "happiness": {
+      "id": "happiness",
+      "displayName": "السعادة",
+      "type": "numeric",
+      "range": { "min": 0, "max": 100 },
+      "default": 60,
+      "description": "Average citizen happiness in the area."
+    },
+    "education": {
+      "id": "education",
+      "displayName": "التعليم",
+      "type": "numeric",
+      "range": { "min": 0, "max": 100 },
+      "default": 20,
+      "description": "Education level provided by coverage."
+    },
+    "health": {
+      "id": "health",
+      "displayName": "الصحة",
+      "type": "numeric",
+      "range": { "min": 0, "max": 100 },
+      "default": 30,
+      "description": "Health level from hospital coverage."
+    },
+    "crime": {
+      "id": "crime",
+      "displayName": "الجريمة",
+      "type": "numeric",
+      "range": { "min": 0, "max": 100 },
+      "default": 10,
+      "description": "Crime rate. Higher is worse."
+    },
+    "pollution": {
+      "id": "pollution",
+      "displayName": "التلوث",
+      "type": "numeric",
+      "range": { "min": 0, "max": 100 },
+      "default": 5,
+      "description": "Air and ground pollution level."
+    },
+    "traffic": {
+      "id": "traffic",
+      "displayName": "الازدحام المروري",
+      "type": "numeric",
+      "range": { "min": 0, "max": 100 },
+      "default": 15,
+      "description": "Traffic congestion level."
+    },
+    "freight_access": {
+      "id": "freight_access",
+      "displayName": "وصول الشحن",
+      "type": "numeric",
+      "range": { "min": 0, "max": 100 },
+      "default": 0,
+      "description": "Ease of freight transport. Used by industry."
+    },
+    "customer_access": {
+      "id": "customer_access",
+      "displayName": "وصول الزبائن",
+      "type": "numeric",
+      "range": { "min": 0, "max": 100 },
+      "default": 0,
+      "description": "Access to customers for commercial buildings."
+    },
+    "residential_demand": {
+      "id": "residential_demand",
+      "displayName": "الطلب السكني",
+      "type": "numeric",
+      "range": { "min": -100, "max": 100 },
+      "default": 20,
+      "description": "Current RCI residential demand."
+    },
+    "commercial_demand": {
+      "id": "commercial_demand",
+      "displayName": "الطلب التجاري",
+      "type": "numeric",
+      "range": { "min": -100, "max": 100 },
+      "default": 10,
+      "description": "Current RCI commercial demand."
+    },
+    "industrial_demand": {
+      "id": "industrial_demand",
+      "displayName": "الطلب الصناعي",
+      "type": "numeric",
+      "range": { "min": -100, "max": 100 },
+      "default": 10,
+      "description": "Current RCI industrial demand."
+    }
+  }
+}
