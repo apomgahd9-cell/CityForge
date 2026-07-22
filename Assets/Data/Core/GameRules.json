@@ -1,0 +1,78 @@
+{
+  "version": 1,
+  "metadata": {
+    "gameName": "CityForge",
+    "description": "Core engine rules. Content data belongs in Definitions/ and Balance/.",
+    "principle": "This file answers: How does the engine work? Not: What are the stats?"
+  },
+  "map": {
+    "presets": {
+      "small":  { "width": 64,  "height": 64  },
+      "medium": { "width": 128, "height": 128 },
+      "large":  { "width": 256, "height": 256 }
+    },
+    "defaultPreset": "medium",
+    "tileSizeMeters": 8,
+    "borderBehavior": "ocean"
+  },
+  "simulation": {
+    "tickIntervalSeconds": 1.0,
+    "ticksPerGameDay": 24,
+    "gameDaysPerMonth": 30,
+    "gameMonthsPerYear": 12,
+    "pausedOnStart": false,
+    "maxSpeedMultiplier": 4
+  },
+  "zones": {
+    "maxBuildingLevel": 5,
+    "levelsInMVP": 3,
+    "growthCheckIntervalTicks": 10,
+    "abandonmentThresholdMonths": 6
+  },
+  "rci": {
+    "demandUpdateIntervalTicks": 5,
+    "demandDecayRate": 0.02,
+    "satisfactionDampingFactor": 0.8,
+    "externalDemandInfluence": 0.1
+  },
+  "world": {
+    "dayNightCycle": {
+      "enabled": true,
+      "dayDurationSeconds": 120,
+      "nightDurationSeconds": 60,
+      "sunriseTime": "06:00",
+      "sunsetTime": "18:00"
+    },
+    "seasons": {
+      "enabled": false,
+      "available": ["spring", "summer", "autumn", "winter"],
+      "seasonLengthDays": 90
+    },
+    "climate": {
+      "defaultClimate": "temperate",
+      "available": ["temperate", "desert", "tropical", "arctic"]
+    }
+  },
+  "saveSystem": {
+    "saveFormatVersion": 1,
+    "compatibleVersions": [1],
+    "compression": "gzip",
+    "maxSaveSlots": 10,
+    "autoSaveIntervalMinutes": 5,
+    "keepAutoSaveCount": 3,
+    "allowCloudSave": true
+  },
+  "performance": {
+    "targets": {
+      "targetFPS": 30,
+      "minimumFPS": 24,
+      "maxFrameTimeMs": 33,
+      "maxMemoryMB": 200
+    },
+    "adaptiveQuality": {
+      "enabled": true,
+      "lodBias": 1.0,
+      "shadowDistanceMultiplier": 1.0
+    }
+  }
+}

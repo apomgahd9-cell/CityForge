@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "description": "Land use definitions. Zones define permissions and constraints, NOT economic output.",
+  "zones": [
+    {
+      "id": "zone_residential",
+      "displayName": "منطقة سكنية",
+      "landUse": "residential",
+      "color": "#4CAF50",
+      "icon": "residential_zone_icon",
+      "allowAutoDevelopment": true,
+      "allowedBuildingCategories": ["house", "apartment", "estate"],
+      "densityStages": ["low", "medium", "high"],
+      "developmentRules": {
+        "growthProfile": "residential_default",
+        "upgradeProfile": "standard",
+        "declineProfile": "standard"
+      },
+      "placementConstraints": {
+        "requiresRoadAccess": true,
+        "minDistanceFromIndustrial": 0,
+        "maxSlope": 15
+      }
+    },
+    {
+      "id": "zone_commercial",
+      "displayName": "منطقة تجارية",
+      "landUse": "commercial",
+      "color": "#2196F3",
+      "icon": "commercial_zone_icon",
+      "allowAutoDevelopment": true,
+      "allowedBuildingCategories": ["shop", "mall", "office"],
+      "densityStages": ["low", "medium", "high"],
+      "developmentRules": {
+        "growthProfile": "commercial_default",
+        "upgradeProfile": "standard",
+        "declineProfile": "standard"
+      },
+      "placementConstraints": {
+        "requiresRoadAccess": true,
+        "minDistanceFromIndustrial": 0,
+        "maxSlope": 10
+      }
+    },
+    {
+      "id": "zone_industrial",
+      "displayName": "منطقة صناعية",
+      "landUse": "industrial",
+      "color": "#FFC107",
+      "icon": "industrial_zone_icon",
+      "allowAutoDevelopment": true,
+      "allowedBuildingCategories": ["factory", "warehouse", "refinery"],
+      "densityStages": ["low", "medium", "high"],
+      "developmentRules": {
+        "growthProfile": "industrial_default",
+        "upgradeProfile": "standard",
+        "declineProfile": "standard"
+      },
+      "placementConstraints": {
+        "requiresRoadAccess": true,
+        "minDistanceFromResidential": 4,
+        "maxSlope": 5
+      }
+    }
+  ]
+}
