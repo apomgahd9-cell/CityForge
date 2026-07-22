@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "version": 1,
+  "description": "Calculates RCI demand values from simulation metrics. Uses generic functions (linear, ratio). Ratio function returns 0 if denominator <= 0. No building or zone references.",
+  "demandCalculations": {
+    "residential_demand": {
+      "description": "Driven by jobs-to-population ratio, unemployment, and taxes.",
+      "baseValue": 0,
+      "modifiers": [
+        {
+          "function": "ratio",
+          "inputA": "jobs_available",
+          "inputB": "population_total",
+          "weight": 0.8,
+          "description": "Jobs per capita. Ratio > 1.0 increases demand. Returns 0 if population is 0."
+        },
+        {
+          "function": "linear",
+          "metric": "unemployment_rate",
+          "weight": -0.5,
+          "description": "Higher unemployment reduces demand."
+        },
+        {
+          "function": "linear",
+          "metric": "tax_residential",
+          "threshold": 10,
+          "weight": -2.0,
+          "description": "Tax above 10% reduces demand proportionally."
+        }
+      ],
+      "clampRange": [-100, 100]
+    },
+    "commercial_demand": {
+      "description": "Driven by population, residential demand, and taxes.",
+      "baseValue": 5,
+      "modifiers": [
+        {
+          "function": "linear",
+          "metric": "population_total",
+          "weight": 0.005,
+          "description": "More people need more shops."
+        },
+        {
+          "function": "linear",
+          "metric": "residential_demand",
+          "weight": 0.3,
+          "description": "Growing residential demand pulls commercial."
+        },
+        {
+          "function": "linear",
+          "metric": "tax_commercial",
+          "threshold": 10,
+          "weight": -2.5,
+          "description": "Tax above 10% reduces demand."
+        }
+      ],
+      "clampRange": [-100, 100]
+    },
+    "industrial_demand": {
+      "description": "Driven by workforce, freight, and taxes.",
+      "baseValue": 5,
+      "modifiers": [
+        {
+          "function": "ratio",
+          "inputA": "workforce_available",
+          "inputB": "jobs_industrial",
+          "weight": 1.2,
+          "description": "Available workers per industrial job. Returns 0 if jobs_industrial is 0."
+        },
+        {
+          "function": "linear",
+          "metric": "freight_access",
+          "weight": 0.1,
+          "description": "Better freight access increases demand."
+        },
+        {
+          "function": "linear",
+          "metric": "tax_industrial",
+          "threshold": 8,
+          "weight": -3.0,
+          "description": "Industry is very tax-sensitive."
+        }
+      ],
+      "clampRange": [-100, 100]
+    }
+  }
+}

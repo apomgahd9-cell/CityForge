@@ -97,6 +97,41 @@
       "range": { "min": -100, "max": 100 },
       "default": 10,
       "description": "Current RCI industrial demand."
+    },
+    "population_total": {
+      "id": "population_total",
+      "type": "numeric",
+      "range": { "min": 0, "max": 999999 },
+      "default": 0,
+      "description": "Total city population."
+    },
+    "jobs_available": {
+      "id": "jobs_available",
+      "type": "numeric",
+      "range": { "min": 0, "max": 999999 },
+      "default": 0,
+      "description": "Total jobs currently available for citizens."
+    },
+    "jobs_industrial": {
+      "id": "jobs_industrial",
+      "type": "numeric",
+      "range": { "min": 0, "max": 999999 },
+      "default": 0,
+      "description": "Total industrial jobs."
+    },
+    "workforce_available": {
+      "id": "workforce_available",
+      "type": "numeric",
+      "range": { "min": 0, "max": 999999 },
+      "default": 0,
+      "description": "Citizens available to work."
+    },
+    "unemployment_rate": {
+      "id": "unemployment_rate",
+      "type": "numeric",
+      "range": { "min": 0, "max": 100 },
+      "default": 5,
+      "description": "Percentage of workforce without jobs."
     }
   }
 }

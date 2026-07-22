@@ -30,6 +30,7 @@
     "abandonmentThresholdMonths": 6
   },
   "rci": {
+    "updateIntervalTicks": 5,
     "demandUpdateIntervalTicks": 5,
     "demandDecayRate": 0.02,
     "satisfactionDampingFactor": 0.8,
