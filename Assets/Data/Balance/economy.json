@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "version": 1,
+  "description": "City finances: tax policy, revenues, expenses, loans, and budget. Tax rates are read from taxPolicy, not metrics.",
+  "initialState": {
+    "startingFunds": 50000,
+    "description": "Funds when a new city is founded."
+  },
+  "budgetCycle": {
+    "period": "monthly",
+    "description": "Budget is calculated once per game month."
+  },
+  "taxPolicy": {
+    "residential": {
+      "defaultRate": 7,
+      "minRate": 0,
+      "maxRate": 20,
+      "rateStep": 0.5,
+      "description": "Tax rate for residential buildings. Set by player within these bounds."
+    },
+    "commercial": {
+      "defaultRate": 7,
+      "minRate": 0,
+      "maxRate": 20,
+      "rateStep": 0.5,
+      "description": "Tax rate for commercial buildings."
+    },
+    "industrial": {
+      "defaultRate": 7,
+      "minRate": 0,
+      "maxRate": 20,
+      "rateStep": 0.5,
+      "description": "Tax rate for industrial buildings."
+    }
+  },
+  "revenue": {
+    "taxIncome": {
+      "description": "Monthly tax revenue. Uses taxPolicy values multiplied by simulation metrics.",
+      "sources": {
+        "residential": {
+          "function": "linear",
+          "metric": "population_total",
+          "weight": 0.1,
+          "taxSource": "taxPolicy.residential",
+          "description": "Residential tax = population * 0.1 * residentialTaxRate."
+        },
+        "commercial": {
+          "function": "linear",
+          "metric": "commercial_demand",
+          "weight": 2.0,
+          "taxSource": "taxPolicy.commercial",
+          "description": "Commercial tax = demand * 2.0 * commercialTaxRate."
+        },
+        "industrial": {
+          "function": "linear",
+          "metric": "freight_access",
+          "weight": 3.0,
+          "taxSource": "taxPolicy.industrial",
+          "description": "Industrial tax = freight_access * 3.0 * industrialTaxRate."
+        }
+      }
+    },
+    "serviceFees": {
+      "enabled": false,
+      "description": "Optional fees for water/electricity. Disabled by default for MVP.",
+      "water": {
+        "function": "linear",
+        "metric": "population_total",
+        "weight": 0.02
+      },
+      "electricity": {
+        "function": "linear",
+        "metric": "population_total",
+        "weight": 0.03
+      }
+    }
+  },
+  "expenses": {
+    "serviceMaintenance": {
+      "description": "Monthly cost per service building. Can scale with city size if scaling is defined.",
+      "police": {
+        "baseCost": 100,
+        "scaling": {
+          "metric": "population_total",
+          "weight": 0.01,
+          "description": "Extra cost per 100 population."
+        }
+      },
+      "fire": {
+        "baseCost": 80,
+        "scaling": {
+          "metric": "population_total",
+          "weight": 0.008,
+          "description": "Extra cost per 100 population."
+        }
+      },
+      "health": {
+        "baseCost": 150,
+        "scaling": {
+          "metric": "population_total",
+          "weight": 0.015,
+          "description": "Extra cost per 100 population."
+        }
+      },
+      "education": {
+        "baseCost": 120,
+        "scaling": {
+          "metric": "population_total",
+          "weight": 0.012,
+          "description": "Extra cost per 100 population."
+        }
+      },
+      "water": {
+        "baseCost": 50,
+        "scaling": null
+      },
+      "electricity": {
+        "baseCost": 70,
+        "scaling": null
+      }
+    },
+    "roadMaintenance": {
+      "costPerTile": 0.5,
+      "description": "Monthly cost per road tile."
+    },
+    "loanInterest": {
+      "description": "Interest payment on outstanding loans. Calculated monthly: loanAmount * interestRate / 12."
+    }
+  },
+  "loan": {
+    "maxAmount": 100000,
+    "interestRate": 0.05,
+    "minPayment": 500,
+    "description": "Loan terms. Interest rate is annual."
+  },
+  "financialState": {
+    "bankruptcyThreshold": -50000,
+    "description": "If funds fall below this, game over or emergency grants."
+  }
+}
