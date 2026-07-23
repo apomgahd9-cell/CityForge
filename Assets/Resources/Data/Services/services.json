@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "version": 1,
+  "description": "Service building definitions. Each service provides coverage and affects a specific metric.",
+  "services": {
+    "water_tower": {
+      "id": "water_tower",
+      "name": "برج مياه",
+      "type": "water",
+      "cost": 500,
+      "upkeep": 50,
+      "radius": 10,
+      "coverageType": "radius",
+      "effect": {
+        "metric": "water_coverage",
+        "operation": "add",
+        "value": 100
+      }
+    },
+    "power_plant": {
+      "id": "power_plant",
+      "name": "محطة كهرباء",
+      "type": "electricity",
+      "cost": 1000,
+      "upkeep": 100,
+      "radius": 0,
+      "coverageType": "network",
+      "capacity": 1500,
+      "effect": {
+        "metric": "power_coverage",
+        "operation": "add",
+        "value": 100
+      }
+    },
+    "police_station": {
+      "id": "police_station",
+      "name": "مركز شرطة",
+      "type": "police",
+      "cost": 800,
+      "upkeep": 120,
+      "radius": 12,
+      "coverageType": "radius",
+      "effect": {
+        "metric": "crime_rate",
+        "operation": "add",
+        "value": -20
+      }
+    },
+    "fire_station": {
+      "id": "fire_station",
+      "name": "محطة إطفاء",
+      "type": "fire",
+      "cost": 600,
+      "upkeep": 80,
+      "radius": 10,
+      "coverageType": "radius",
+      "effect": {
+        "metric": "fire_risk",
+        "operation": "add",
+        "value": -30
+      }
+    },
+    "hospital": {
+      "id": "hospital",
+      "name": "مستشفى",
+      "type": "health",
+      "cost": 1200,
+      "upkeep": 200,
+      "radius": 15,
+      "coverageType": "radius",
+      "effect": {
+        "metric": "health_coverage",
+        "operation": "add",
+        "value": 100
+      }
+    },
+    "school": {
+      "id": "school",
+      "name": "مدرسة",
+      "type": "education",
+      "cost": 900,
+      "upkeep": 150,
+      "radius": 14,
+      "coverageType": "radius",
+      "effect": {
+        "metric": "education_coverage",
+        "operation": "add",
+        "value": 100
+      }
+    }
+  }
+}
