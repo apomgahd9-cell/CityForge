@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "version": 1,
+  "description": "Building definitions for MVP. Outputs feed simulation metrics. Stats are physical properties. Zone tags link to zone definitions.",
+  "buildings": [
+    {
+      "id": "residential_house_01",
+      "type": "residential",
+      "displayName": "Small House",
+      "category": "house",
+      "zoneTags": ["residential"],
+      "growthProfile": "residential_default",
+      "level": 1,
+      "model": "Models/Residential/res_house_01",
+      "size": { "width": 1, "depth": 1 },
+      "construction": {
+        "cost": 500,
+        "timeTicks": 20
+      },
+      "outputs": {
+        "population": { "min": 4, "max": 8 }
+      },
+      "stats": {
+        "power_usage": 2,
+        "water_usage": 2,
+        "garbage_production": 1,
+        "happiness_base": 70
+      },
+      "upgradesTo": null,
+      "variants": ["residential_house_02", "residential_house_03"]
+    },
+    {
+      "id": "commercial_shop_01",
+      "type": "commercial",
+      "displayName": "Small Shop",
+      "category": "shop",
+      "zoneTags": ["commercial"],
+      "growthProfile": "commercial_default",
+      "level": 1,
+      "model": "Models/Commercial/com_shop_01",
+      "size": { "width": 1, "depth": 1 },
+      "construction": {
+        "cost": 700,
+        "timeTicks": 25
+      },
+      "outputs": {
+        "jobs_available": { "min": 3, "max": 6 },
+        "customer_access": 10
+      },
+      "stats": {
+        "power_usage": 3,
+        "water_usage": 1,
+        "garbage_production": 1,
+        "happiness_base": 60
+      },
+      "upgradesTo": null,
+      "variants": ["commercial_shop_02"]
+    },
+    {
+      "id": "industrial_factory_01",
+      "type": "industrial",
+      "displayName": "Small Factory",
+      "category": "factory",
+      "zoneTags": ["industrial"],
+      "growthProfile": "industrial_default",
+      "level": 1,
+      "model": "Models/Industrial/ind_factory_01",
+      "size": { "width": 2, "depth": 2 },
+      "construction": {
+        "cost": 1200,
+        "timeTicks": 35
+      },
+      "outputs": {
+        "jobs_available": { "min": 8, "max": 15 },
+        "freight_access": 15,
+        "pollution": 10
+      },
+      "stats": {
+        "power_usage": 8,
+        "water_usage": 5,
+        "garbage_production": 2,
+        "happiness_base": 40
+      },
+      "upgradesTo": null,
+      "variants": ["industrial_factory_02"]
+    }
+  ]
+}
