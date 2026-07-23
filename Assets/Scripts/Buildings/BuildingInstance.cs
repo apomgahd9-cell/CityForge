@@ -4,19 +4,38 @@ public class BuildingInstance
 {
     public string definitionId;
     public BuildingDefinition Definition { get; private set; }
-    
-    // المستوى الحالي للمبنى
     public int CurrentLevel { get; private set; }
+
+    // قيم ثابتة تُحدد عند الإنشاء ولا تتغير إلا بترقية المبنى
+    public int Population { get; private set; }
+    public int Jobs { get; private set; }
 
     public BuildingInstance(BuildingDefinition definition)
     {
         Definition = definition;
         definitionId = definition.id;
-        // يبدأ المبنى دائماً بالمستوى 1
         CurrentLevel = 1;
+
+        // توليد القيم العشوائية مرة واحدة فقط
+        if (definition.outputs.population != null)
+        {
+            Population = Random.Range(definition.outputs.population.min, definition.outputs.population.max + 1);
+        }
+        else
+        {
+            Population = 0;
+        }
+
+        if (definition.outputs.jobs_available != null)
+        {
+            Jobs = Random.Range(definition.outputs.jobs_available.min, definition.outputs.jobs_available.max + 1);
+        }
+        else
+        {
+            Jobs = 0;
+        }
     }
 
-    // تعيين مستوى جديد للمبنى
     public void SetLevel(int newLevel)
     {
         if (newLevel < 1)
@@ -25,5 +44,6 @@ public class BuildingInstance
             return;
         }
         CurrentLevel = newLevel;
+        // في المستقبل، عند الترقية، يمكن إعادة حساب Population و Jobs بناءً على التعريف الجديد
     }
 }
