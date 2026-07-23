@@ -15,7 +15,6 @@ public class EconomySystem : MonoBehaviour
     private SimulationClock clock;
     private int lastBudgetMonth = -1;
 
-    // قواعد اللعبة التي تقرأ من GameRules
     private int ticksPerGameDay = 24;
     private int gameDaysPerMonth = 30;
 
@@ -40,7 +39,6 @@ public class EconomySystem : MonoBehaviour
             return;
         }
 
-        // قراءة القواعد من GameRules لجعل النظام Data-Driven
         var gameRules = JsonLoader.Load<GameRulesData>("Data/Core/GameRules");
         if (gameRules != null && gameRules.simulation != null)
         {
@@ -74,10 +72,8 @@ public class EconomySystem : MonoBehaviour
 
     private void OnSimulationTick(int tick)
     {
-        // حساب الشهر الحالي بناءً على قواعد GameRules
         int ticksPerMonth = ticksPerGameDay * gameDaysPerMonth;
 
-        // حماية من القسمة على صفر في حالة تلف البيانات
         if (ticksPerMonth <= 0)
         {
             Debug.LogError("Invalid budget cycle configuration in GameRules. ticksPerGameDay and gameDaysPerMonth must be positive.");
@@ -113,7 +109,6 @@ public class EconomySystem : MonoBehaviour
     {
         float total = 0;
 
-        // ضرائب المناطق
         foreach (var source in economyData.revenue.taxIncome.sources.Values)
         {
             float metricVal = MetricsSystem.Instance.GetMetric(source.metric);
@@ -121,7 +116,6 @@ public class EconomySystem : MonoBehaviour
             total += metricVal * source.weight * (taxRate / 100f);
         }
 
-        // رسوم الخدمات إن كانت مفعّلة
         if (economyData.revenue.serviceFees != null && economyData.revenue.serviceFees.enabled)
         {
             if (economyData.revenue.serviceFees.water != null)
@@ -137,18 +131,21 @@ public class EconomySystem : MonoBehaviour
     {
         float total = 0;
 
-        // صيانة الخدمات
-        foreach (var service in economyData.expenses.serviceMaintenance.Values)
+        // 1. مصاريف الخدمات المبنية على ServiceSystem (المصدر الحي الوحيد)
+        if (ServiceSystem.Instance != null)
         {
-            float cost = service.baseCost;
-            if (service.scaling != null)
-            {
-                float metricVal = MetricsSystem.Instance.GetMetric(service.scaling.metric);
-                cost += metricVal * service.scaling.weight;
-            }
-            total += cost;
+            total += ServiceSystem.Instance.GetTotalUpkeep();
+        }
+        else
+        {
+            Debug.LogWarning("ServiceSystem not available for expense calculation.");
         }
 
+        // 2. بنود مصاريف أخرى من economy.json (إن وجدت مستقبلاً)
+        // TODO: يمكن إضافة مصاريف إدارية أو عامة غير مرتبطة بالخدمات هنا
+        // مثال: total += economyData.expenses.administrationBaseCost;
+
+        // 3. صيانة الطرق (جاهز للربط مستقبلاً)
         // TODO: ربط صيانة الطرق بـ RoadSystem لحساب عدد البلاطات
         // total += roadTileCount * economyData.expenses.roadMaintenance.costPerTile;
 
@@ -161,7 +158,7 @@ public class EconomySystem : MonoBehaviour
         if (parts.Length == 2 && parts[0] == "taxPolicy")
         {
             if (economyData.taxPolicy.TryGetValue(parts[1], out var policy))
-                return policy.defaultRate; // TODO: لاحقاً تؤخذ من إعدادات اللاعب
+                return policy.defaultRate;
         }
         
         Debug.LogWarning($"Tax policy not found for source: {taxSource}. Returning 0.");
