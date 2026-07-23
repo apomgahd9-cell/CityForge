@@ -81,7 +81,11 @@ public class ServiceSystem : MonoBehaviour
             return;
         }
 
-        activeServices[serviceId] = activeServices.GetValueOrDefault(serviceId, 0) + 1;
+        // إصلاح: استخدام ContainsKey بدل GetValueOrDefault لضمان التوافق مع جميع إصدارات C#/Unity
+        if (!activeServices.ContainsKey(serviceId))
+            activeServices[serviceId] = 0;
+
+        activeServices[serviceId]++;
         Debug.Log($"Service added: {def.name} (id: {serviceId}, count: {activeServices[serviceId]})");
         ApplyServiceEffects();
     }
