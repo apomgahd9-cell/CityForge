@@ -8,6 +8,22 @@ public class MetricsSystem : MonoBehaviour
     private Dictionary<string, float> metrics = new();
     private List<BuildingInstance> buildings = new();
 
+    // TODO: فصل المقاييس حسب المصدر:
+    // - Building Metrics (يحسبها MetricsSystem)
+    // - Service Metrics (يحسبها ServiceSystem)
+    // - Economy Metrics (يحسبها EconomySystem)
+    // حتى لا تقوم الأنظمة بمسح بيانات بعضها البعض.
+    private static readonly string[] buildingMetrics =
+    {
+        "population_total",
+        "jobs_available",
+        "workforce_available",
+        "jobs_industrial",
+        "customer_access",
+        "freight_access",
+        "pollution"
+    };
+
     private void Awake()
     {
         if (Instance != null && Instance != this)
@@ -24,13 +40,12 @@ public class MetricsSystem : MonoBehaviour
     {
         SimulationClock clock = FindObjectOfType<SimulationClock>();
         if (clock != null)
-        {
             clock.OnTick += UpdateMetrics;
-        }
     }
 
     private void InitializeMetrics()
     {
+        // مقاييس المباني والسكان
         metrics["population_total"] = 0;
         metrics["jobs_available"] = 0;
         metrics["workforce_available"] = 0;
@@ -38,6 +53,14 @@ public class MetricsSystem : MonoBehaviour
         metrics["freight_access"] = 0;
         metrics["pollution"] = 0;
         metrics["customer_access"] = 0;
+
+        // مقاييس الخدمات (تُدار بواسطة ServiceSystem، لا يمسحها MetricsSystem)
+        metrics["water_coverage"] = 0;
+        metrics["power_coverage"] = 0;
+        metrics["crime_rate"] = 100;
+        metrics["fire_risk"] = 0;
+        metrics["health_coverage"] = 0;
+        metrics["education_coverage"] = 0;
     }
 
     public void AddBuilding(BuildingInstance instance)
@@ -66,19 +89,18 @@ public class MetricsSystem : MonoBehaviour
 
     public void RecalculateAll()
     {
-        ResetValues();
+        ResetBuildingMetrics();
         foreach (var building in buildings)
-        {
             ApplyBuilding(building);
-        }
     }
 
-    private void ResetValues()
+    // تم التعديل: تصفير مقاييس المباني فقط، وليس جميع المقاييس
+    private void ResetBuildingMetrics()
     {
-        var keys = new List<string>(metrics.Keys);
-        foreach (var key in keys)
+        foreach (var metric in buildingMetrics)
         {
-            metrics[key] = 0;
+            if (metrics.ContainsKey(metric))
+                metrics[metric] = 0;
         }
     }
 
@@ -86,7 +108,6 @@ public class MetricsSystem : MonoBehaviour
     {
         var def = instance.Definition;
 
-        // استخدام القيم المخزنة في المثيل بدلاً من Random.Range
         metrics["population_total"] += instance.Population;
         metrics["jobs_available"] += instance.Jobs;
 
