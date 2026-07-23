@@ -5,18 +5,8 @@ public class MetricsSystem : MonoBehaviour
 {
     public static MetricsSystem Instance { get; private set; }
 
-
-    public int population_total { get; private set; }
-    public int jobs_available { get; private set; }
-    public int jobs_industrial { get; private set; }
-
-    public float freight_access { get; private set; }
-    public float pollution { get; private set; }
-
-
-    private List<BuildingInstance> buildings =
-        new List<BuildingInstance>();
-
+    private Dictionary<string, float> metrics = new();
+    private List<BuildingInstance> buildings = new();
 
     private void Awake()
     {
@@ -25,93 +15,99 @@ public class MetricsSystem : MonoBehaviour
             Destroy(gameObject);
             return;
         }
-
         Instance = this;
+        DontDestroyOnLoad(gameObject);
+        InitializeMetrics();
     }
 
-
-
-    public void AddBuilding(BuildingInstance building)
+    private void Start()
     {
-        buildings.Add(building);
-
-        Recalculate();
-
-        Debug.Log(
-            $"Metrics updated: Population={population_total}, Jobs={jobs_available}"
-        );
-    }
-
-
-
-    private void Recalculate()
-    {
-        population_total = 0;
-        jobs_available = 0;
-        jobs_industrial = 0;
-        freight_access = 0;
-        pollution = 0;
-
-
-        foreach (BuildingInstance building in buildings)
+        SimulationClock clock = FindObjectOfType<SimulationClock>();
+        if (clock != null)
         {
-            var output = building.Definition.outputs;
-
-
-            if (output.population != null)
-            {
-                population_total += Random.Range(
-                    output.population.min,
-                    output.population.max + 1
-                );
-            }
-
-
-            if (output.jobs_available != null)
-            {
-                int jobs = Random.Range(
-                    output.jobs_available.min,
-                    output.jobs_available.max + 1
-                );
-
-                jobs_available += jobs;
-
-
-                if (building.Definition.type == "industrial")
-                {
-                    jobs_industrial += jobs;
-                }
-            }
-
-
-            freight_access += output.freight_access;
-            pollution += output.pollution;
+            clock.OnTick += UpdateMetrics;
         }
     }
 
+    private void InitializeMetrics()
+    {
+        metrics["population_total"] = 0;
+        metrics["jobs_available"] = 0;
+        metrics["workforce_available"] = 0;
+        metrics["jobs_industrial"] = 0;
+        metrics["freight_access"] = 0;
+        metrics["pollution"] = 0;
+        metrics["customer_access"] = 0;
+    }
 
+    public void AddBuilding(BuildingInstance instance)
+    {
+        if (!buildings.Contains(instance))
+        {
+            buildings.Add(instance);
+            RecalculateAll();
+        }
+    }
+
+    public void RemoveBuilding(BuildingInstance instance)
+    {
+        if (buildings.Contains(instance))
+        {
+            buildings.Remove(instance);
+            RecalculateAll();
+        }
+    }
+
+    private void UpdateMetrics(int tick)
+    {
+        RecalculateAll();
+        Debug.Log($"Metrics Tick {tick}: Population={GetMetric("population_total")}, Jobs={GetMetric("jobs_available")}");
+    }
+
+    public void RecalculateAll()
+    {
+        ResetValues();
+        foreach (var building in buildings)
+        {
+            ApplyBuilding(building);
+        }
+    }
+
+    private void ResetValues()
+    {
+        var keys = new List<string>(metrics.Keys);
+        foreach (var key in keys)
+        {
+            metrics[key] = 0;
+        }
+    }
+
+    private void ApplyBuilding(BuildingInstance instance)
+    {
+        var def = instance.Definition;
+
+        // استخدام القيم المخزنة في المثيل بدلاً من Random.Range
+        metrics["population_total"] += instance.Population;
+        metrics["jobs_available"] += instance.Jobs;
+
+        metrics["customer_access"] += def.outputs.customer_access;
+        metrics["freight_access"] += def.outputs.freight_access;
+        metrics["pollution"] += def.outputs.pollution;
+    }
 
     public float GetMetric(string id)
     {
-        switch(id)
-        {
-            case "population_total":
-                return population_total;
+        if (metrics.TryGetValue(id, out float value))
+            return value;
+        Debug.LogWarning($"Metric '{id}' not found.");
+        return 0;
+    }
 
-            case "jobs_available":
-                return jobs_available;
-
-            case "jobs_industrial":
-                return jobs_industrial;
-
-            case "freight_access":
-                return freight_access;
-
-            case "pollution":
-                return pollution;
-
-            default:
-                return 0;
-        }
+    public void SetMetric(string id, float value)
+    {
+        if (metrics.ContainsKey(id))
+            metrics[id] = value;
+        else
+            metrics.Add(id, value);
     }
 }
