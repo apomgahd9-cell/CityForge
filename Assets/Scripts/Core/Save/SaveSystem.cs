@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.IO;
-using UnityEngine;
 using Newtonsoft.Json;
+using UnityEngine;
 
 public class SaveSystem : MonoBehaviour
 {
@@ -28,6 +28,7 @@ public class SaveSystem : MonoBehaviour
     public void Register(ISaveable saveable)
     {
         if (saveables.Contains(saveable)) return;
+
         saveables.Add(saveable);
         saveables.Sort((a, b) => a.LoadPriority.CompareTo(b.LoadPriority));
     }
@@ -39,19 +40,19 @@ public class SaveSystem : MonoBehaviour
 
     public void SaveGame(string fileName)
     {
-        var data = new SaveData
+        SaveData data = new SaveData
         {
             saveName = fileName,
             saveTimestamp = System.DateTimeOffset.UtcNow.ToUnixTimeSeconds()
         };
 
-        foreach (var s in saveables)
-            s.Save(data);
+        foreach (ISaveable saveable in saveables)
+            saveable.Save(data);
 
         string json = JsonConvert.SerializeObject(data, Formatting.Indented);
         string fullPath = Path.Combine(saveFolderPath, $"{fileName}.json");
         File.WriteAllText(fullPath, json);
-        Debug.Log($"Game saved to: {fullPath}");
+        Debug.Log($"Game saved: {fullPath}");
     }
 
     public void LoadGame(string fileName)
@@ -64,7 +65,7 @@ public class SaveSystem : MonoBehaviour
         }
 
         string json = File.ReadAllText(fullPath);
-        var data = JsonConvert.DeserializeObject<SaveData>(json);
+        SaveData data = JsonConvert.DeserializeObject<SaveData>(json);
 
         if (data == null)
         {
@@ -73,30 +74,24 @@ public class SaveSystem : MonoBehaviour
         }
 
         if (data.version != 1)
-            Debug.LogWarning("Save file version mismatch!");
+            Debug.LogWarning("Save file version mismatch.");
 
-        // تحميل البيانات بالترتيب المضمون
-        foreach (var s in saveables)
-            s.Load(data);
+        foreach (ISaveable saveable in saveables)
+            saveable.Load(data);
 
-        // إعادة بناء المقاييس المشتقة
         if (MetricsSystem.Instance != null)
             MetricsSystem.Instance.RecalculateAll();
 
-        // TODO: عند تطبيق ISaveable على ServiceSystem، أضف السطر التالي:
-        // if (ServiceSystem.Instance != null)
-        //     ServiceSystem.Instance.RecalculateAllEffects();
-
-        Debug.Log($"Game loaded from: {fullPath}");
+        Debug.Log($"Game loaded: {fullPath}");
     }
 
     public List<string> GetSaveFiles()
     {
-        var files = new List<string>();
+        List<string> files = new List<string>();
         if (Directory.Exists(saveFolderPath))
         {
-            foreach (var f in Directory.GetFiles(saveFolderPath, "*.json"))
-                files.Add(Path.GetFileNameWithoutExtension(f));
+            foreach (string file in Directory.GetFiles(saveFolderPath, "*.json"))
+                files.Add(Path.GetFileNameWithoutExtension(file));
         }
         return files;
     }
