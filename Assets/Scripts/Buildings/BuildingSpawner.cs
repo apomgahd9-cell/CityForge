@@ -106,7 +106,52 @@ public class BuildingSpawner : MonoBehaviour, ISaveable
             Vector3 position = new Vector3(saved.positionX, saved.positionY, saved.positionZ);
             BuildingInstance instance = SpawnBuilding(saved.definitionId, position);
             if (instance != null)
+            {
                 instance.SetLevel(saved.currentLevel);
+
+                BuildingDefinition def = instance.Definition;
+                int areaWidth = def.size != null ? def.size.width : 1;
+                int areaDepth = def.size != null ? def.size.depth : 1;
+
+                if (OccupancyMap.Instance != null && GridSystem.Instance != null)
+                {
+                    if (GridSystem.Instance.WorldToGrid(position, out int gridX, out int gridY))
+                    {
+                        int occupantId = OccupancyMap.Instance.ReoccupyArea(gridX, gridY, areaWidth, areaDepth);
+                        instance.SetOccupantId(occupantId);
+
+                        TileType tileType = GetTileTypeForDefinition(def);
+
+                        for (int x = gridX; x < gridX + areaWidth; x++)
+                        {
+                            for (int y = gridY; y < gridY + areaDepth; y++)
+                            {
+                                GridSystem.Instance.SetTile(x, y, new TileData
+                                {
+                                    gridX = x,
+                                    gridY = y,
+                                    type = tileType
+                                });
+                            }
+                        }
+                    }
+                }
+            }
         }
+    }
+
+    private TileType GetTileTypeForDefinition(BuildingDefinition definition)
+    {
+        if (definition.zoneTags != null)
+        {
+            if (definition.zoneTags.Contains("residential"))
+                return TileType.Residential;
+            if (definition.zoneTags.Contains("commercial"))
+                return TileType.Commercial;
+            if (definition.zoneTags.Contains("industrial"))
+                return TileType.Industrial;
+        }
+
+        return TileType.Service;
     }
 }
