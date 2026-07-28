@@ -79,6 +79,37 @@ public class OccupancyMap : MonoBehaviour
         return occupantId;
     }
 
+    public int ReoccupyArea(int startX, int startY, int areaWidth, int areaDepth)
+    {
+        EnsureInitialized();
+        if (!initialized) return -1;
+
+        for (int x = startX; x < startX + areaWidth; x++)
+        {
+            for (int y = startY; y < startY + areaDepth; y++)
+            {
+                if (!GridSystem.Instance.IsValidGridPosition(x, y))
+                {
+                    Debug.LogWarning($"ReoccupyArea: position ({x},{y}) is outside grid bounds.");
+                    return -1;
+                }
+            }
+        }
+
+        int occupantId = nextOccupantId++;
+
+        for (int x = startX; x < startX + areaWidth; x++)
+        {
+            for (int y = startY; y < startY + areaDepth; y++)
+            {
+                occupancyGrid[x, y] = occupantId;
+            }
+        }
+
+        Debug.Log($"Area ({startX},{startY}) {areaWidth}x{areaDepth} reoccupied by ID {occupantId}");
+        return occupantId;
+    }
+
     public void FreeAreaByOccupantId(int occupantId)
     {
         EnsureInitialized();
