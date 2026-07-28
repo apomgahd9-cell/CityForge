@@ -34,6 +34,11 @@ public class BuildingSpawner : MonoBehaviour, ISaveable
 
     public BuildingInstance SpawnBuilding(string buildingId)
     {
+        return SpawnBuilding(buildingId, Vector3.zero);
+    }
+
+    public BuildingInstance SpawnBuilding(string buildingId, Vector3 position)
+    {
         if (DataRegistry.Instance == null)
         {
             Debug.LogError("DataRegistry not found.");
@@ -47,7 +52,7 @@ public class BuildingSpawner : MonoBehaviour, ISaveable
             return null;
         }
 
-        BuildingInstance instance = new BuildingInstance(definition);
+        BuildingInstance instance = new BuildingInstance(definition, position);
         activeBuildings.Add(instance);
 
         if (MetricsSystem.Instance != null)
@@ -55,7 +60,7 @@ public class BuildingSpawner : MonoBehaviour, ISaveable
         else
             Debug.LogWarning("MetricsSystem not available. Building not added to metrics.");
 
-        Debug.Log($"Building spawned: {definition.displayName} (ID: {definition.id})");
+        Debug.Log($"Building spawned: {definition.displayName} (ID: {definition.id}) at {position}");
         return instance;
     }
 
@@ -84,9 +89,9 @@ public class BuildingSpawner : MonoBehaviour, ISaveable
             {
                 definitionId = building.Definition.id,
                 currentLevel = building.CurrentLevel,
-                positionX = 0,
-                positionY = 0,
-                positionZ = 0
+                positionX = building.Position.x,
+                positionY = building.Position.y,
+                positionZ = building.Position.z
             });
         }
     }
@@ -98,7 +103,8 @@ public class BuildingSpawner : MonoBehaviour, ISaveable
 
         foreach (BuildingSaveData saved in data.buildings)
         {
-            BuildingInstance instance = SpawnBuilding(saved.definitionId);
+            Vector3 position = new Vector3(saved.positionX, saved.positionY, saved.positionZ);
+            BuildingInstance instance = SpawnBuilding(saved.definitionId, position);
             if (instance != null)
                 instance.SetLevel(saved.currentLevel);
         }
