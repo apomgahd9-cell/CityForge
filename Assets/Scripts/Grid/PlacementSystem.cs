@@ -29,6 +29,12 @@ public class PlacementSystem : MonoBehaviour
             return false;
         }
 
+        if (OccupancyMap.Instance == null)
+        {
+            Debug.LogError("OccupancyMap not found.");
+            return false;
+        }
+
         if (DataRegistry.Instance == null)
         {
             Debug.LogError("DataRegistry not found.");
@@ -48,10 +54,12 @@ public class PlacementSystem : MonoBehaviour
             return false;
         }
 
-        TileData tile = GridSystem.Instance.GetTile(gridX, gridY);
-        if (tile.type != TileType.Empty)
+        int areaWidth = definition.size != null ? definition.size.width : 1;
+        int areaDepth = definition.size != null ? definition.size.depth : 1;
+
+        if (!OccupancyMap.Instance.IsAreaFree(gridX, gridY, areaWidth, areaDepth))
         {
-            Debug.LogWarning($"Tile ({gridX}, {gridY}) is already occupied by {tile.type}.");
+            Debug.LogWarning($"Area ({gridX},{gridY}) {areaWidth}x{areaDepth} is not free.");
             return false;
         }
 
@@ -62,15 +70,32 @@ public class PlacementSystem : MonoBehaviour
             return false;
         }
 
-        TileType tileType = GetTileTypeForBuilding(definition);
-        GridSystem.Instance.SetTile(gridX, gridY, new TileData
+        int occupantId = OccupancyMap.Instance.OccupyArea(gridX, gridY, areaWidth, areaDepth);
+        if (occupantId < 0)
         {
-            gridX = gridX,
-            gridY = gridY,
-            type = tileType
-        });
+            Debug.LogError("Failed to occupy area.");
+            BuildingSpawner.Instance.RemoveBuilding(instance);
+            return false;
+        }
 
-        Debug.Log($"Placed {definition.displayName} at ({gridX}, {gridY})");
+        instance.SetOccupantId(occupantId);
+
+        TileType tileType = GetTileTypeForBuilding(definition);
+
+        for (int x = gridX; x < gridX + areaWidth; x++)
+        {
+            for (int y = gridY; y < gridY + areaDepth; y++)
+            {
+                GridSystem.Instance.SetTile(x, y, new TileData
+                {
+                    gridX = x,
+                    gridY = y,
+                    type = tileType
+                });
+            }
+        }
+
+        Debug.Log($"Placed {definition.displayName} at ({gridX}, {gridY}), size: {areaWidth}x{areaDepth}, occupant ID: {occupantId}");
         return true;
     }
 
@@ -79,6 +104,12 @@ public class PlacementSystem : MonoBehaviour
         if (GridSystem.Instance == null)
         {
             Debug.LogError("GridSystem not found.");
+            return false;
+        }
+
+        if (OccupancyMap.Instance == null)
+        {
+            Debug.LogError("OccupancyMap not found.");
             return false;
         }
 
@@ -94,12 +125,13 @@ public class PlacementSystem : MonoBehaviour
             return false;
         }
 
-        TileData tile = GridSystem.Instance.GetTile(gridX, gridY);
-        if (tile.type != TileType.Empty)
+        if (OccupancyMap.Instance.IsOccupied(gridX, gridY))
         {
-            Debug.LogWarning($"Tile ({gridX}, {gridY}) is already occupied by {tile.type}.");
+            Debug.LogWarning($"Tile ({gridX}, {gridY}) is already occupied.");
             return false;
         }
+
+        OccupancyMap.Instance.OccupyArea(gridX, gridY, 1, 1);
 
         GridSystem.Instance.SetTile(gridX, gridY, new TileData
         {
@@ -112,28 +144,42 @@ public class PlacementSystem : MonoBehaviour
         return true;
     }
 
-    public void RemovePlacement(Vector3 worldPosition)
+    public void RemovePlacement(BuildingInstance instance)
     {
-        if (GridSystem.Instance == null)
+        if (instance == null) return;
+
+        if (OccupancyMap.Instance != null && instance.OccupantId > 0)
+            OccupancyMap.Instance.FreeAreaByOccupantId(instance.OccupantId);
+
+        if (GridSystem.Instance != null)
         {
-            Debug.LogError("GridSystem not found.");
-            return;
+            BuildingDefinition definition = instance.Definition;
+            Vector3 pos = instance.Position;
+
+            if (GridSystem.Instance.WorldToGrid(pos, out int gridX, out int gridY))
+            {
+                int areaWidth = definition.size != null ? definition.size.width : 1;
+                int areaDepth = definition.size != null ? definition.size.depth : 1;
+
+                for (int x = gridX; x < gridX + areaWidth; x++)
+                {
+                    for (int y = gridY; y < gridY + areaDepth; y++)
+                    {
+                        GridSystem.Instance.SetTile(x, y, new TileData
+                        {
+                            gridX = x,
+                            gridY = y,
+                            type = TileType.Empty
+                        });
+                    }
+                }
+            }
         }
 
-        if (!GridSystem.Instance.WorldToGrid(worldPosition, out int gridX, out int gridY))
-        {
-            Debug.LogWarning("Position is outside grid bounds.");
-            return;
-        }
+        if (BuildingSpawner.Instance != null)
+            BuildingSpawner.Instance.RemoveBuilding(instance);
 
-        GridSystem.Instance.SetTile(gridX, gridY, new TileData
-        {
-            gridX = gridX,
-            gridY = gridY,
-            type = TileType.Empty
-        });
-
-        Debug.Log($"Cleared tile at ({gridX}, {gridY})");
+        Debug.Log($"Placement removed for building at {instance.Position}");
     }
 
     private TileType GetTileTypeForBuilding(BuildingDefinition definition)
