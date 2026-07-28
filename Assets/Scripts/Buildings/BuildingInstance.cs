@@ -5,8 +5,8 @@ public class BuildingInstance
     public string definitionId;
     public BuildingDefinition Definition { get; private set; }
     public int CurrentLevel { get; private set; }
+    public Vector3 Position { get; private set; }
 
-    // قيم ثابتة تُحدد عند الإنشاء ولا تتغير إلا بترقية المبنى
     public int Population { get; private set; }
     public int Jobs { get; private set; }
 
@@ -15,25 +15,22 @@ public class BuildingInstance
         Definition = definition;
         definitionId = definition.id;
         CurrentLevel = 1;
+        Position = Vector3.zero;
 
-        // توليد القيم العشوائية مرة واحدة فقط
         if (definition.outputs.population != null)
-        {
             Population = Random.Range(definition.outputs.population.min, definition.outputs.population.max + 1);
-        }
         else
-        {
             Population = 0;
-        }
 
         if (definition.outputs.jobs_available != null)
-        {
             Jobs = Random.Range(definition.outputs.jobs_available.min, definition.outputs.jobs_available.max + 1);
-        }
         else
-        {
             Jobs = 0;
-        }
+    }
+
+    public BuildingInstance(BuildingDefinition definition, Vector3 position) : this(definition)
+    {
+        Position = position;
     }
 
     public void SetLevel(int newLevel)
@@ -44,6 +41,10 @@ public class BuildingInstance
             return;
         }
         CurrentLevel = newLevel;
-        // في المستقبل، عند الترقية، يمكن إعادة حساب Population و Jobs بناءً على التعريف الجديد
+    }
+
+    public void SetPosition(Vector3 position)
+    {
+        Position = position;
     }
 }
