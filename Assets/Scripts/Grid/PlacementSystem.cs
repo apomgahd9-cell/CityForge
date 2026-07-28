@@ -55,7 +55,7 @@ public class PlacementSystem : MonoBehaviour
             return false;
         }
 
-        BuildingInstance instance = BuildingSpawner.Instance.SpawnBuilding(buildingId);
+        BuildingInstance instance = BuildingSpawner.Instance.SpawnBuilding(buildingId, worldPosition);
         if (instance == null)
         {
             Debug.LogError($"Failed to spawn building: {buildingId}");
