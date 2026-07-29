@@ -63,7 +63,7 @@ public class ServiceSystem : MonoBehaviour, ISaveable
             activeServices[serviceId] = 0;
 
         activeServices[serviceId]++;
-        Debug.Log($"Service added: {def.name} (id: {serviceId}, count: {activeServices[serviceId]})");
+        Debug.Log($"Service added: {def.displayName} (id: {serviceId}, count: {activeServices[serviceId]})");
         ApplyServiceEffects();
     }
 
@@ -76,7 +76,7 @@ public class ServiceSystem : MonoBehaviour, ISaveable
         }
 
         activeServices[serviceId]--;
-        Debug.Log($"Service removed: {serviceLookup[serviceId].name} (id: {serviceId}, count: {activeServices[serviceId]})");
+        Debug.Log($"Service removed: {serviceLookup[serviceId].displayName} (id: {serviceId}, count: {activeServices[serviceId]})");
         ApplyServiceEffects();
     }
 
@@ -92,14 +92,8 @@ public class ServiceSystem : MonoBehaviour, ISaveable
 
     public float GetTotalUpkeep()
     {
-        float total = 0f;
-        foreach (KeyValuePair<string, int> kvp in activeServices)
-        {
-            if (kvp.Value <= 0) continue;
-            if (serviceLookup.TryGetValue(kvp.Key, out ServiceDefinition def))
-                total += def.upkeep * kvp.Value;
-        }
-        return total;
+        // TODO: إضافة upkeep إلى ServiceDefinition لاحقاً
+        return 0f;
     }
 
     public void RecalculateAllEffects()
@@ -111,37 +105,29 @@ public class ServiceSystem : MonoBehaviour, ISaveable
     {
         if (servicesData == null || MetricsSystem.Instance == null) return;
 
+        // تصفير مقاييس الخدمات القديمة
         foreach (ServiceDefinition def in servicesData.services.Values)
         {
-            if (!string.IsNullOrEmpty(def.effect.metric))
-                MetricsSystem.Instance.SetMetric(def.effect.metric, 0);
+            if (!string.IsNullOrEmpty(def.metricId))
+                MetricsSystem.Instance.SetMetric(def.metricId, 0);
         }
 
-        foreach (KeyValuePair<string, int> kvp in activeServices)
+        // حساب التغطية من ServiceCoverageSystem إذا كان متاحاً
+        if (ServiceCoverageSystem.Instance != null && GridSystem.Instance != null)
         {
-            if (kvp.Value <= 0) continue;
-            if (!serviceLookup.TryGetValue(kvp.Key, out ServiceDefinition def)) continue;
+            int totalTiles = GridSystem.Instance.Width * GridSystem.Instance.Height;
 
-            float currentVal = MetricsSystem.Instance.GetMetric(def.effect.metric);
-            float newVal = currentVal;
-
-            switch (def.effect.operation)
+            foreach (ServiceDefinition def in servicesData.services.Values)
             {
-                case "add":
-                    newVal += def.effect.value * kvp.Value;
-                    break;
-                case "multiply":
-                    newVal *= 1f + (def.effect.value * kvp.Value / 100f);
-                    break;
-                case "set":
-                    newVal = def.effect.value;
-                    break;
-                default:
-                    Debug.LogWarning($"Unknown operation '{def.effect.operation}' for service {def.id}");
-                    break;
-            }
+                int coveredCount = ServiceCoverageSystem.Instance.GetCoverage(def.id).Count;
+                float coveragePercent = totalTiles > 0 ? (float)coveredCount / totalTiles * 100f : 0f;
 
-            MetricsSystem.Instance.SetMetric(def.effect.metric, newVal);
+                if (!string.IsNullOrEmpty(def.metricId))
+                {
+                    float current = MetricsSystem.Instance.GetMetric(def.metricId);
+                    MetricsSystem.Instance.SetMetric(def.metricId, current + coveragePercent);
+                }
+            }
         }
     }
 
@@ -164,11 +150,11 @@ public class ServiceSystem : MonoBehaviour, ISaveable
             return;
         }
 
-        List<string> keys = new List<string>(activeServices.Keys);
+        var keys = new List<string>(activeServices.Keys);
         foreach (string key in keys)
             activeServices[key] = 0;
 
-        foreach (KeyValuePair<string, int> pair in data.activeServices)
+        foreach (var pair in data.activeServices)
         {
             if (serviceLookup.ContainsKey(pair.Key))
                 activeServices[pair.Key] = pair.Value;
