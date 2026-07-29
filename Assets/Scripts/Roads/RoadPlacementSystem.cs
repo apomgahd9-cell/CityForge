@@ -4,7 +4,6 @@ public class RoadPlacementSystem : MonoBehaviour
 {
     public static RoadPlacementSystem Instance { get; private set; }
 
-    // تعريف مؤقت للطريق الأساسي (لحين بناء roads.json و DataRegistry)
     private RoadDefinition defaultRoad = new RoadDefinition
     {
         id = "basic_road",
@@ -58,18 +57,10 @@ public class RoadPlacementSystem : MonoBehaviour
             return false;
         }
 
-        // TODO: خصم تكلفة البناء من EconomySystem عند تثبيت واجهة الاقتصاد
-        // if (EconomySystem.Instance != null && !EconomySystem.Instance.CanAfford(defaultRoad.costPerTile))
-        // {
-        //     Debug.LogWarning("Not enough funds to build road.");
-        //     return false;
-        // }
-
         bool placed = RoadNetwork.Instance.AddRoad(gridX, gridY);
         if (placed)
         {
-            // TODO: EconomySystem.Instance.DeductFunds(defaultRoad.costPerTile);
-            // TODO: إخطار RoadGraph و ServiceCoverage و Pathfinding بتحديث الشبكة
+            RoadGraph.Instance?.Rebuild();
             Debug.Log($"Road placed at ({gridX}, {gridY})");
         }
 
@@ -103,7 +94,7 @@ public class RoadPlacementSystem : MonoBehaviour
         }
 
         RoadNetwork.Instance.RemoveRoad(gridX, gridY);
-        // TODO: إخطار RoadGraph و ServiceCoverage و Pathfinding بتحديث الشبكة
+        RoadGraph.Instance?.Rebuild();
         Debug.Log($"Road removed at ({gridX}, {gridY})");
         return true;
     }
