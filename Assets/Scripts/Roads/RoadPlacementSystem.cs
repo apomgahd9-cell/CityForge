@@ -61,6 +61,7 @@ public class RoadPlacementSystem : MonoBehaviour
         if (placed)
         {
             RoadGraph.Instance?.Rebuild();
+            ServiceCoverageSystem.Instance?.BuildAllCoverage();
             Debug.Log($"Road placed at ({gridX}, {gridY})");
         }
 
@@ -95,6 +96,7 @@ public class RoadPlacementSystem : MonoBehaviour
 
         RoadNetwork.Instance.RemoveRoad(gridX, gridY);
         RoadGraph.Instance?.Rebuild();
+        ServiceCoverageSystem.Instance?.BuildAllCoverage();
         Debug.Log($"Road removed at ({gridX}, {gridY})");
         return true;
     }
