@@ -79,6 +79,9 @@ public class SaveSystem : MonoBehaviour
         foreach (ISaveable saveable in saveables)
             saveable.Load(data);
 
+        RoadGraph.Instance?.Rebuild();
+        ServiceCoverageSystem.Instance?.RebuildCoverage();
+
         if (MetricsSystem.Instance != null)
             MetricsSystem.Instance.RecalculateAll();
 
