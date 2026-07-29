@@ -18,6 +18,11 @@ public class ServiceCoverageSystem : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
+    public void RebuildCoverage()
+    {
+        BuildAllCoverage();
+    }
+
     public void BuildAllCoverage()
     {
         if (GridSystem.Instance == null)
@@ -57,6 +62,9 @@ public class ServiceCoverageSystem : MonoBehaviour
 
             coverage[serviceType] = coveredTiles;
         }
+
+        // إخطار ServiceSystem بتحديث المقاييس
+        ServiceSystem.Instance?.RecalculateAllEffects();
 
         Debug.Log($"ServiceCoverage built for {coverage.Count} service types.");
     }
@@ -99,16 +107,40 @@ public class ServiceCoverageSystem : MonoBehaviour
 
     private Dictionary<string, List<Vector2Int>> GetServiceLocations()
     {
-        // TODO: جلب مواقع الخدمات من ServiceSystem → BuildingSpawner → BuildingInstance.Definition
-        return new Dictionary<string, List<Vector2Int>>
+        Dictionary<string, List<Vector2Int>> locations = new Dictionary<string, List<Vector2Int>>();
+
+        if (BuildingSpawner.Instance == null)
         {
-            { "electricity", new List<Vector2Int>() },
-            { "water", new List<Vector2Int>() },
-            { "police", new List<Vector2Int>() },
-            { "fire", new List<Vector2Int>() },
-            { "health", new List<Vector2Int>() },
-            { "education", new List<Vector2Int>() }
-        };
+            Debug.LogWarning("BuildingSpawner not found.");
+            return locations;
+        }
+
+        if (GridSystem.Instance == null)
+        {
+            Debug.LogWarning("GridSystem not found.");
+            return locations;
+        }
+
+        foreach (BuildingInstance building in BuildingSpawner.Instance.GetAllBuildings())
+        {
+            BuildingDefinition def = building.Definition;
+            if (def.services == null || def.services.Count == 0) continue;
+
+            if (!GridSystem.Instance.WorldToGrid(building.Position, out int gridX, out int gridY))
+                continue;
+
+            foreach (ServiceOutput service in def.services)
+            {
+                if (service.amount <= 0) continue;
+
+                if (!locations.ContainsKey(service.serviceId))
+                    locations[service.serviceId] = new List<Vector2Int>();
+
+                locations[service.serviceId].Add(new Vector2Int(gridX, gridY));
+            }
+        }
+
+        return locations;
     }
 
     private int GetMaxDistance(string serviceType)
