@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 
-
 [Serializable]
 public class BuildingDefinition
 {
@@ -9,30 +8,17 @@ public class BuildingDefinition
     public string type;
     public string displayName;
     public string category;
-
     public List<string> zoneTags;
-
     public string growthProfile;
-
     public int level;
-
     public string model;
-
-
     public Size size;
-
     public Construction construction;
-
     public Outputs outputs;
-
     public Stats stats;
-
-
     public string upgradesTo;
-
     public List<string> variants;
-
-
+    public List<ServiceOutput> services;
 
     [Serializable]
     public class Size
@@ -41,7 +27,6 @@ public class BuildingDefinition
         public int depth;
     }
 
-
     [Serializable]
     public class Construction
     {
@@ -49,21 +34,15 @@ public class BuildingDefinition
         public int timeTicks;
     }
 
-
     [Serializable]
     public class Outputs
     {
         public RangeInt population;
-
         public RangeInt jobs_available;
-
         public int customer_access;
-
         public int freight_access;
-
         public int pollution;
     }
-
 
     [Serializable]
     public class Stats
@@ -74,11 +53,17 @@ public class BuildingDefinition
         public int happiness_base;
     }
 
-
     [Serializable]
     public class RangeInt
     {
         public int min;
         public int max;
+    }
+
+    [Serializable]
+    public class ServiceOutput
+    {
+        public string serviceId;
+        public float amount;
     }
 }
