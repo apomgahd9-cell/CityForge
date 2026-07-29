@@ -1,11 +1,13 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class RoadNetwork : MonoBehaviour
+public class RoadNetwork : MonoBehaviour, ISaveable
 {
     public static RoadNetwork Instance { get; private set; }
 
     private HashSet<Vector2Int> roadTiles = new HashSet<Vector2Int>();
+
+    public int LoadPriority => 10;
 
     private void Awake()
     {
@@ -16,6 +18,18 @@ public class RoadNetwork : MonoBehaviour
         }
         Instance = this;
         DontDestroyOnLoad(gameObject);
+    }
+
+    private void Start()
+    {
+        if (SaveSystem.Instance != null)
+            SaveSystem.Instance.Register(this);
+    }
+
+    private void OnDestroy()
+    {
+        if (SaveSystem.Instance != null)
+            SaveSystem.Instance.Unregister(this);
     }
 
     public bool AddRoad(int gridX, int gridY)
@@ -110,4 +124,45 @@ public class RoadNetwork : MonoBehaviour
     }
 
     public int RoadCount => roadTiles.Count;
+
+    public void Save(SaveData data)
+    {
+        if (data.roads == null)
+            data.roads = new List<RoadSaveData>();
+        else
+            data.roads.Clear();
+
+        foreach (Vector2Int pos in roadTiles)
+        {
+            data.roads.Add(new RoadSaveData
+            {
+                type = "basic_road",
+                gridX = pos.x,
+                gridY = pos.y
+            });
+        }
+    }
+
+    public void Load(SaveData data)
+    {
+        roadTiles.Clear();
+
+        if (data.roads == null) return;
+
+        foreach (RoadSaveData saved in data.roads)
+        {
+            Vector2Int pos = new Vector2Int(saved.gridX, saved.gridY);
+            roadTiles.Add(pos);
+
+            if (GridSystem.Instance != null)
+            {
+                GridSystem.Instance.SetTile(saved.gridX, saved.gridY, new TileData
+                {
+                    gridX = saved.gridX,
+                    gridY = saved.gridY,
+                    type = TileType.Road
+                });
+            }
+        }
+    }
 }
