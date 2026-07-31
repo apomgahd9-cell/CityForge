@@ -99,7 +99,7 @@ public class PlacementSystem : MonoBehaviour
         return true;
     }
 
-    public bool PlaceZone(TileType zoneType, Vector3 worldPosition)
+    public bool PlaceZone(ZoneType zoneType, Vector3 worldPosition)
     {
         if (GridSystem.Instance == null)
         {
@@ -113,7 +113,13 @@ public class PlacementSystem : MonoBehaviour
             return false;
         }
 
-        if (zoneType != TileType.Residential && zoneType != TileType.Commercial && zoneType != TileType.Industrial)
+        if (ZoneSystem.Instance == null)
+        {
+            Debug.LogError("ZoneSystem not found.");
+            return false;
+        }
+
+        if (zoneType != ZoneType.Residential && zoneType != ZoneType.Commercial && zoneType != ZoneType.Industrial)
         {
             Debug.LogWarning($"Invalid zone type: {zoneType}");
             return false;
@@ -131,16 +137,79 @@ public class PlacementSystem : MonoBehaviour
             return false;
         }
 
+        if (!ZoneSystem.Instance.AddZone(gridX, gridY, zoneType))
+        {
+            Debug.LogWarning($"Failed to add zone at ({gridX}, {gridY}).");
+            return false;
+        }
+
         OccupancyMap.Instance.OccupyArea(gridX, gridY, 1, 1);
+
+        TileType tileType = zoneType switch
+        {
+            ZoneType.Residential => TileType.Residential,
+            ZoneType.Commercial => TileType.Commercial,
+            ZoneType.Industrial => TileType.Industrial,
+            _ => TileType.Empty
+        };
 
         GridSystem.Instance.SetTile(gridX, gridY, new TileData
         {
             gridX = gridX,
             gridY = gridY,
-            type = zoneType
+            type = tileType
         });
 
         Debug.Log($"Zone {zoneType} placed at ({gridX}, {gridY})");
+        return true;
+    }
+
+    public bool RemoveZone(Vector3 worldPosition)
+    {
+        if (GridSystem.Instance == null)
+        {
+            Debug.LogError("GridSystem not found.");
+            return false;
+        }
+
+        if (ZoneSystem.Instance == null)
+        {
+            Debug.LogError("ZoneSystem not found.");
+            return false;
+        }
+
+        if (OccupancyMap.Instance == null)
+        {
+            Debug.LogError("OccupancyMap not found.");
+            return false;
+        }
+
+        if (!GridSystem.Instance.WorldToGrid(worldPosition, out int gridX, out int gridY))
+        {
+            Debug.LogWarning("Position is outside grid bounds.");
+            return false;
+        }
+
+        if (!ZoneSystem.Instance.HasZone(gridX, gridY))
+        {
+            Debug.LogWarning($"No zone at ({gridX}, {gridY}).");
+            return false;
+        }
+
+        int occupantId = OccupancyMap.Instance.GetOccupantId(gridX, gridY);
+        if (occupantId > 0)
+            OccupancyMap.Instance.FreeAreaByOccupantId(occupantId);
+
+        ZoneSystem.Instance.RemoveZone(gridX, gridY);
+
+        GridSystem.Instance.SetTile(gridX, gridY, new TileData
+        {
+            gridX = gridX,
+            gridY = gridY,
+            type = TileType.Empty
+        });
+
+        Debug.Log($"Zone removed at ({gridX}, {gridY})");
         return true;
     }
 
