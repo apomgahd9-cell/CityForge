@@ -113,6 +113,25 @@ public class ZoneSystem : MonoBehaviour, ISaveable
         return result;
     }
 
+    public List<ZoneData> GetBuildableZones(ZoneType zoneType)
+    {
+        List<ZoneData> buildable = new List<ZoneData>();
+
+        foreach (var zone in GetZonesByType(zoneType))
+        {
+            if (!HasRoadAccess(zone.gridX, zone.gridY))
+                continue;
+
+            int buildingCount = GetBuildingCount(zone.gridX, zone.gridY);
+            if (buildingCount >= zone.maxBuildings)
+                continue;
+
+            buildable.Add(zone);
+        }
+
+        return buildable;
+    }
+
     public bool HasRoadAccess(int gridX, int gridY)
     {
         if (RoadNetwork.Instance == null) return false;
@@ -140,7 +159,6 @@ public class ZoneSystem : MonoBehaviour, ISaveable
 
     public int GetBuildingCount(int gridX, int gridY)
     {
-        // TODO: استبدال البحث الخطي بفهرس مكاني (Spatial Index) لتحسين الأداء
         if (BuildingSpawner.Instance == null) return 0;
 
         int count = 0;
