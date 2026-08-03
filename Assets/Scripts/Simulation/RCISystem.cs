@@ -1,108 +1,141 @@
 using UnityEngine;
 
-
 public class RCISystem : MonoBehaviour
 {
     public static RCISystem Instance { get; private set; }
 
-
-    public float residential_demand { get; private set; }
-    public float commercial_demand { get; private set; }
-    public float industrial_demand { get; private set; }
-
-
+    private RCIData rciData;
+    private SimulationClock clock;
 
     private void Awake()
     {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+            return;
+        }
         Instance = this;
+        DontDestroyOnLoad(gameObject);
     }
-
-
 
     private void Start()
     {
-        if (BuildingSpawner.Instance != null)
+        rciData = JsonLoader.Load<RCIData>("Data/Balance/rci");
+        if (rciData == null)
         {
-            BuildingSpawner.Instance.SpawnBuilding(
-                "residential_house_01"
-            );
+            Debug.LogError("rci.json not found. RCI system disabled.");
+            enabled = false;
+            return;
+        }
 
-            BuildingSpawner.Instance.SpawnBuilding(
-                "commercial_shop_01"
-            );
+        clock = FindObjectOfType<SimulationClock>();
+        if (clock != null)
+            clock.OnTick += OnSimulationTick;
+        else
+            Debug.LogError("SimulationClock not found.");
+    }
 
-            BuildingSpawner.Instance.SpawnBuilding(
-                "industrial_factory_01"
-            );
+    private void OnDestroy()
+    {
+        if (clock != null)
+            clock.OnTick -= OnSimulationTick;
+    }
+
+    private void OnSimulationTick(int tick)
+    {
+        if (tick % 5 == 0)
+        {
+            CalculateAllDemands();
         }
     }
 
-
-
-    private void Update()
+    private void CalculateAllDemands()
     {
-        Calculate();
+        if (MetricsSystem.Instance == null) return;
+
+        CalculateDemand("residential_demand");
+        CalculateDemand("commercial_demand");
+        CalculateDemand("industrial_demand");
+
+        Debug.Log($"RCI: R={MetricsSystem.Instance.GetMetric("residential_demand"):F1}, " +
+                  $"C={MetricsSystem.Instance.GetMetric("commercial_demand"):F1}, " +
+                  $"I={MetricsSystem.Instance.GetMetric("industrial_demand"):F1}");
     }
 
-
-
-    private void Calculate()
+    private void CalculateDemand(string demandKey)
     {
-        if (MetricsSystem.Instance == null)
-            return;
+        DemandItem demandItem = GetDemandItem(demandKey);
+        if (demandItem == null) return;
 
+        float demand = demandItem.baseValue;
 
-        float population =
-            MetricsSystem.Instance.GetMetric(
-                "population_total"
-            );
+        foreach (var modifier in demandItem.modifiers)
+        {
+            float contribution = 0f;
 
+            switch (modifier.function)
+            {
+                case "ratio":
+                    float inputA = MetricsSystem.Instance.GetMetric(modifier.inputA);
+                    float inputB = MetricsSystem.Instance.GetMetric(modifier.inputB);
+                    if (inputB > 0)
+                        contribution = (inputA / inputB) * modifier.weight;
+                    break;
 
-        float jobs =
-            MetricsSystem.Instance.GetMetric(
-                "jobs_available"
-            );
+                case "linear":
+                    float metricVal = MetricsSystem.Instance.GetMetric(modifier.metric);
+                    float threshold = modifier.threshold;
+                    contribution = (metricVal - threshold) * modifier.weight;
+                    break;
+            }
 
+            demand += contribution;
+        }
 
-        float freight =
-            MetricsSystem.Instance.GetMetric(
-                "freight_access"
-            );
+        demand = ApplyZoneModifier(demandKey, demand);
+        demand = Mathf.Clamp(demand, demandItem.clampRange[0], demandItem.clampRange[1]);
 
+        MetricsSystem.Instance.SetMetric(demandKey, demand);
+    }
 
+    private float ApplyZoneModifier(string demandKey, float currentDemand)
+    {
+        if (ZoneSystem.Instance == null) return currentDemand;
 
-        residential_demand =
-            Mathf.Clamp(
-                (jobs > 0 && population > 0 ?
-                jobs / population * 0.8f : 0),
-                -100,
-                100
-            );
+        ZoneType zoneType = demandKey switch
+        {
+            "residential_demand" => ZoneType.Residential,
+            "commercial_demand" => ZoneType.Commercial,
+            "industrial_demand" => ZoneType.Industrial,
+            _ => (ZoneType)(-1)
+        };
 
+        if ((int)zoneType == -1) return currentDemand;
 
+        int totalZones = ZoneSystem.Instance.GetZonesByType(zoneType).Count;
+        int emptyZones = ZoneSystem.Instance.GetBuildableZones(zoneType).Count;
 
-        commercial_demand =
-            Mathf.Clamp(
-                5 +
-                population * 0.005f +
-                residential_demand * 0.3f,
-                -100,
-                100
-            );
+        if (totalZones > 0)
+        {
+            float fillRatio = (float)emptyZones / totalZones;
+            currentDemand -= fillRatio * 15f;
+        }
+        else
+        {
+            currentDemand += 10f;
+        }
 
+        return currentDemand;
+    }
 
-
-        industrial_demand =
-            Mathf.Clamp(
-                5 +
-                freight * 0.1f,
-                -100,
-                100
-            );
-
-
-        Debug.Log(
-            $"RCI => R:{residential_demand:F2} C:{commercial_demand:F2} I:{industrial_demand:F2}"
-        );
+    private DemandItem GetDemandItem(string demandKey)
+    {
+        return demandKey switch
+        {
+            "residential_demand" => rciData.demandCalculations.residential_demand,
+            "commercial_demand" => rciData.demandCalculations.commercial_demand,
+            "industrial_demand" => rciData.demandCalculations.industrial_demand,
+            _ => null
+        };
     }
 }
