@@ -19,20 +19,42 @@ public class BuildingInstance
         Position = Vector3.zero;
         OccupantId = 0;
 
-        if (definition.outputs.population != null)
-            Population = Random.Range(definition.outputs.population.min, definition.outputs.population.max + 1);
-        else
-            Population = 0;
-
-        if (definition.outputs.jobs_available != null)
-            Jobs = Random.Range(definition.outputs.jobs_available.min, definition.outputs.jobs_available.max + 1);
-        else
-            Jobs = 0;
+        CalculateStats();
     }
 
     public BuildingInstance(BuildingDefinition definition, Vector3 position) : this(definition)
     {
         Position = position;
+    }
+
+    /// <summary>
+    /// يستبدل تعريف المبنى مع إعادة حساب الإحصائيات وتحديث المستوى.
+    /// </summary>
+    public void ReplaceDefinition(BuildingDefinition newDefinition)
+    {
+        if (newDefinition == null)
+        {
+            Debug.LogWarning("ReplaceDefinition: newDefinition is null.");
+            return;
+        }
+
+        Definition = newDefinition;
+        definitionId = newDefinition.id;
+        CurrentLevel = newDefinition.level;
+        CalculateStats();
+    }
+
+    private void CalculateStats()
+    {
+        if (Definition.outputs.population != null)
+            Population = Random.Range(Definition.outputs.population.min, Definition.outputs.population.max + 1);
+        else
+            Population = 0;
+
+        if (Definition.outputs.jobs_available != null)
+            Jobs = Random.Range(Definition.outputs.jobs_available.min, Definition.outputs.jobs_available.max + 1);
+        else
+            Jobs = 0;
     }
 
     public void SetLevel(int newLevel)
