@@ -84,6 +84,15 @@ public class GrowthSystem : MonoBehaviour
         string buildingId = GetBuildingIdForZone(zoneType);
         if (string.IsNullOrEmpty(buildingId)) return false;
 
+        if (DataRegistry.Instance == null)
+        {
+            Debug.LogWarning("DataRegistry not available.");
+            return false;
+        }
+
+        BuildingDefinition def = DataRegistry.Instance.GetBuilding(buildingId);
+        if (def == null) return false;
+
         var profile = FindProfile(zoneType);
         if (profile == null) return false;
 
@@ -92,6 +101,15 @@ public class GrowthSystem : MonoBehaviour
         if (currentStage == null) return false;
 
         var zone = buildableZones[Random.Range(0, buildableZones.Count)];
+
+        // استخدام أبعاد المبنى الحقيقية
+        int areaWidth = def.size != null ? def.size.width : 1;
+        int areaDepth = def.size != null ? def.size.depth : 1;
+
+        // التحقق من أن المساحة حرة
+        if (OccupancyMap.Instance != null &&
+            !OccupancyMap.Instance.IsAreaFree(zone.gridX, zone.gridY, areaWidth, areaDepth))
+            return false;
 
         if (!CheckRules(currentStage.rules)) return false;
 
@@ -105,11 +123,26 @@ public class GrowthSystem : MonoBehaviour
             {
                 if (OccupancyMap.Instance != null)
                 {
-                    int occupantId = OccupancyMap.Instance.OccupyArea(zone.gridX, zone.gridY, 1, 1);
+                    int occupantId = OccupancyMap.Instance.OccupyArea(zone.gridX, zone.gridY, areaWidth, areaDepth);
                     instance.SetOccupantId(occupantId);
                 }
 
-                Debug.Log($"Auto-built {buildingId} at ({zone.gridX}, {zone.gridY})");
+                // تحديث جميع بلاطات المبنى
+                TileType tileType = GetTileTypeForZone(zoneType);
+                for (int x = zone.gridX; x < zone.gridX + areaWidth; x++)
+                {
+                    for (int y = zone.gridY; y < zone.gridY + areaDepth; y++)
+                    {
+                        GridSystem.Instance.SetTile(x, y, new TileData
+                        {
+                            gridX = x,
+                            gridY = y,
+                            type = tileType
+                        });
+                    }
+                }
+
+                Debug.Log($"Auto-built {buildingId} ({areaWidth}x{areaDepth}) at ({zone.gridX}, {zone.gridY})");
                 return true;
             }
         }
@@ -208,5 +241,16 @@ public class GrowthSystem : MonoBehaviour
             chance += contribution;
         }
         return Mathf.Clamp(chance, model.minChance, model.maxChance);
+    }
+
+    private TileType GetTileTypeForZone(ZoneType zoneType)
+    {
+        return zoneType switch
+        {
+            ZoneType.Residential => TileType.Residential,
+            ZoneType.Commercial  => TileType.Commercial,
+            ZoneType.Industrial  => TileType.Industrial,
+            _ => TileType.Empty
+        };
     }
 }
