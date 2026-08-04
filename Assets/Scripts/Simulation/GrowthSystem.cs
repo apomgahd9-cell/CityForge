@@ -119,14 +119,25 @@ public class GrowthSystem : MonoBehaviour
 
     private string GetBuildingIdForZone(ZoneType zoneType)
     {
-        // TODO: جلب معرف المبنى المناسب من DataRegistry حسب المستوى والطلب والوسوم
-        return zoneType switch
+        if (DataRegistry.Instance == null)
         {
-            ZoneType.Residential => "residential_house_01",
-            ZoneType.Commercial  => "commercial_shop_01",
-            ZoneType.Industrial  => "industrial_factory_01",
+            Debug.LogWarning("DataRegistry not available.");
+            return null;
+        }
+
+        string tag = zoneType switch
+        {
+            ZoneType.Residential => "residential",
+            ZoneType.Commercial  => "commercial",
+            ZoneType.Industrial  => "industrial",
             _ => null
         };
+
+        if (string.IsNullOrEmpty(tag)) return null;
+
+        // TODO: دعم مستويات أعلى من 1 لاحقاً
+        BuildingDefinition def = DataRegistry.Instance.GetRandomBuildingByTagAndLevel(tag, 1);
+        return def?.id;
     }
 
     private GrowthStage FindProfile(ZoneType zoneType)
