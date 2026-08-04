@@ -47,8 +47,13 @@ public class GrowthSystem : MonoBehaviour
 
     private void OnSimulationTick(int tick)
     {
+        // TODO: فصل المراحل لمنع بناء + ترقية + تراجع لنفس المبنى في Tick واحد
         ProcessGrowth();
+        ProcessUpgrades();
+        ProcessDowngrades();
     }
+
+    // ========== البناء الجديد ==========
 
     private void ProcessGrowth()
     {
@@ -93,14 +98,12 @@ public class GrowthSystem : MonoBehaviour
         string buildingId = GetBuildingIdForZone(zoneType, growthLevel);
         if (string.IsNullOrEmpty(buildingId)) return false;
 
-        if (DataRegistry.Instance == null)
-        {
-            Debug.LogWarning("DataRegistry not available.");
-            return false;
-        }
+        if (DataRegistry.Instance == null) return false;
 
         BuildingDefinition def = DataRegistry.Instance.GetBuilding(buildingId);
         if (def == null) return false;
+
+        if (GridSystem.Instance == null) return false;
 
         int areaWidth = def.size != null ? def.size.width : 1;
         int areaDepth = def.size != null ? def.size.depth : 1;
@@ -130,16 +133,11 @@ public class GrowthSystem : MonoBehaviour
                 {
                     for (int y = zone.gridY; y < zone.gridY + areaDepth; y++)
                     {
-                        GridSystem.Instance.SetTile(x, y, new TileData
-                        {
-                            gridX = x,
-                            gridY = y,
-                            type = tileType
-                        });
+                        GridSystem.Instance.SetTile(x, y, new TileData { gridX = x, gridY = y, type = tileType });
                     }
                 }
 
-                Debug.Log($"Auto-built {buildingId} ({areaWidth}x{areaDepth}) at ({zone.gridX}, {zone.gridY}) [Level: {growthLevel}]");
+                Debug.Log($"Auto-built {buildingId} ({areaWidth}x{areaDepth}) at ({zone.gridX}, {zone.gridY})");
                 return true;
             }
         }
@@ -147,13 +145,146 @@ public class GrowthSystem : MonoBehaviour
         return false;
     }
 
+    // ========== ترقية المباني الحالية ==========
+
+    private void ProcessUpgrades()
+    {
+        if (BuildingSpawner.Instance == null || DataRegistry.Instance == null) return;
+
+        var buildings = new List<BuildingInstance>(BuildingSpawner.Instance.GetAllBuildings());
+        foreach (var building in buildings)
+        {
+            TryUpgradeBuilding(building);
+        }
+    }
+
+    private void TryUpgradeBuilding(BuildingInstance building)
+    {
+        var profile = FindProfileForBuilding(building);
+        if (profile == null) return;
+
+        var currentStage = profile.stages.Find(s => s.level == building.CurrentLevel);
+        if (currentStage == null) return;
+
+        if (string.IsNullOrEmpty(currentStage.upgradeTarget) || currentStage.upgradeTarget != "next")
+            return;
+
+        int nextLevel = building.CurrentLevel + 1;
+        var nextStage = profile.stages.Find(s => s.level == nextLevel);
+        if (nextStage == null) return;
+
+        if (!CheckRules(nextStage.rules)) return;
+
+        float chance = CalculateChance(nextStage.growthModel);
+        if (Random.value < chance)
+        {
+            string tag = GetTagForBuilding(building);
+            if (string.IsNullOrEmpty(tag)) return;
+
+            BuildingDefinition newDef = DataRegistry.Instance.GetRandomBuildingByTagAndLevel(tag, nextLevel);
+            if (newDef == null) return;
+
+            string oldName = building.Definition.displayName;
+            bool success = BuildingSpawner.Instance.ReplaceBuilding(building, newDef.id);
+            if (success)
+            {
+                Debug.Log($"{oldName} upgraded to {building.Definition.displayName} (Level {nextLevel})");
+            }
+        }
+    }
+
+    // ========== تراجع المباني ==========
+
+    private void ProcessDowngrades()
+    {
+        if (BuildingSpawner.Instance == null || DataRegistry.Instance == null) return;
+
+        var toRemove = new List<BuildingInstance>();
+
+        var buildings = new List<BuildingInstance>(BuildingSpawner.Instance.GetAllBuildings());
+        foreach (var building in buildings)
+        {
+            bool removed = TryDowngradeBuilding(building);
+            if (removed)
+                toRemove.Add(building);
+        }
+
+        foreach (var building in toRemove)
+        {
+            if (GridSystem.Instance != null)
+            {
+                BuildingDefinition def = building.Definition;
+                int areaWidth = def.size != null ? def.size.width : 1;
+                int areaDepth = def.size != null ? def.size.depth : 1;
+
+                if (GridSystem.Instance.WorldToGrid(building.Position, out int gridX, out int gridY))
+                {
+                    for (int x = gridX; x < gridX + areaWidth; x++)
+                    {
+                        for (int y = gridY; y < gridY + areaDepth; y++)
+                        {
+                            GridSystem.Instance.SetTile(x, y, new TileData { gridX = x, gridY = y, type = TileType.Empty });
+                        }
+                    }
+                }
+            }
+
+            if (OccupancyMap.Instance != null && building.OccupantId > 0)
+                OccupancyMap.Instance.FreeAreaByOccupantId(building.OccupantId);
+
+            BuildingSpawner.Instance.RemoveBuilding(building);
+            Debug.Log($"{building.Definition.displayName} abandoned and removed.");
+        }
+    }
+
+    private bool TryDowngradeBuilding(BuildingInstance building)
+    {
+        var profile = FindProfileForBuilding(building);
+        if (profile == null) return false;
+
+        var currentStage = profile.stages.Find(s => s.level == building.CurrentLevel);
+        if (currentStage == null) return false;
+
+        if (currentStage.declineRules == null || currentStage.declineRules.Count == 0)
+            return false;
+
+        // TODO: مراجعة منطق declineRules مقابل تصميم ملفات JSON
+        if (!CheckRules(currentStage.declineRules)) return false;
+
+        float chance = CalculateChance(currentStage.declineModel);
+        if (Random.value < chance)
+        {
+            int previousLevel = building.CurrentLevel - 1;
+
+            if (previousLevel >= 1)
+            {
+                string tag = GetTagForBuilding(building);
+                if (string.IsNullOrEmpty(tag)) return false;
+
+                BuildingDefinition newDef = DataRegistry.Instance.GetRandomBuildingByTagAndLevel(tag, previousLevel);
+                if (newDef == null) return false;
+
+                string oldName = building.Definition.displayName;
+                bool success = BuildingSpawner.Instance.ReplaceBuilding(building, newDef.id);
+                if (success)
+                {
+                    Debug.Log($"{oldName} downgraded to {building.Definition.displayName} (Level {previousLevel})");
+                }
+            }
+            else
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    // ========== دوال مساعدة ==========
+
     private string GetBuildingIdForZone(ZoneType zoneType, int level)
     {
-        if (DataRegistry.Instance == null)
-        {
-            Debug.LogWarning("DataRegistry not available.");
-            return null;
-        }
+        if (DataRegistry.Instance == null) return null;
 
         string tag = zoneType switch
         {
@@ -167,6 +298,19 @@ public class GrowthSystem : MonoBehaviour
 
         BuildingDefinition def = DataRegistry.Instance.GetRandomBuildingByTagAndLevel(tag, level);
         return def?.id;
+    }
+
+    private string GetTagForBuilding(BuildingInstance building)
+    {
+        if (building.Definition.zoneTags == null) return null;
+
+        string[] knownTags = { "residential", "commercial", "industrial" };
+        foreach (string tag in knownTags)
+        {
+            if (building.Definition.zoneTags.Contains(tag))
+                return tag;
+        }
+        return null;
     }
 
     private GrowthStage FindProfile(ZoneType zoneType)
@@ -183,6 +327,23 @@ public class GrowthSystem : MonoBehaviour
         {
             if (profile.tags != null && profile.tags.Contains(tag))
                 return profile;
+        }
+        return null;
+    }
+
+    private GrowthStage FindProfileForBuilding(BuildingInstance building)
+    {
+        if (building.Definition.zoneTags == null) return null;
+
+        foreach (var profile in growthProfileData.profiles.Values)
+        {
+            if (profile.tags == null) continue;
+
+            foreach (var tag in building.Definition.zoneTags)
+            {
+                if (profile.tags.Contains(tag))
+                    return profile;
+            }
         }
         return null;
     }
