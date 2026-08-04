@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -58,5 +59,46 @@ public class DataRegistry : MonoBehaviour
     {
         Buildings.TryGetValue(id, out BuildingDefinition building);
         return building;
+    }
+
+    public List<BuildingDefinition> GetBuildingsByTag(string tag)
+    {
+        List<BuildingDefinition> result = new List<BuildingDefinition>();
+        foreach (var building in Buildings.Values)
+        {
+            if (building.zoneTags != null && building.zoneTags.Contains(tag))
+                result.Add(building);
+        }
+        return result;
+    }
+
+    public List<BuildingDefinition> GetBuildingsByTagAndLevel(string tag, int level)
+    {
+        List<BuildingDefinition> result = new List<BuildingDefinition>();
+        foreach (var building in Buildings.Values)
+        {
+            if (building.zoneTags != null && building.zoneTags.Contains(tag) && building.level == level)
+                result.Add(building);
+        }
+        return result;
+    }
+
+    public List<BuildingDefinition> GetBuildingsByTagAndCategory(string tag, string category)
+    {
+        List<BuildingDefinition> result = new List<BuildingDefinition>();
+        foreach (var building in Buildings.Values)
+        {
+            if (building.zoneTags != null && building.zoneTags.Contains(tag) &&
+                string.Equals(building.category, category, StringComparison.OrdinalIgnoreCase))
+                result.Add(building);
+        }
+        return result;
+    }
+
+    public BuildingDefinition GetRandomBuildingByTagAndLevel(string tag, int level)
+    {
+        var matches = GetBuildingsByTagAndLevel(tag, level);
+        if (matches.Count == 0) return null;
+        return matches[UnityEngine.Random.Range(0, matches.Count)];
     }
 }
