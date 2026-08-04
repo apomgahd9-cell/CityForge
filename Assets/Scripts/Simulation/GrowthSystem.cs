@@ -1,11 +1,6 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
-/// <summary>
-/// يدير نمو المباني وتدهورها بناءً على ملفات growth_profiles و growth_models.
-/// يعتمد على Newtonsoft.Json لتحميل القواميس من ملفات JSON.
-/// </summary>
 public class GrowthSystem : MonoBehaviour
 {
     public static GrowthSystem Instance { get; private set; }
@@ -28,7 +23,7 @@ public class GrowthSystem : MonoBehaviour
     private void Start()
     {
         growthProfileData = JsonLoader.Load<GrowthProfileWrapper>("Data/Balance/growth_profiles");
-        growthModelData = JsonLoader.Load<GrowthModelWrapper>("Data/Balance/growth_models");
+        growthModelData   = JsonLoader.Load<GrowthModelWrapper>("Data/Balance/growth_models");
 
         if (growthProfileData == null || growthModelData == null)
         {
@@ -39,13 +34,9 @@ public class GrowthSystem : MonoBehaviour
 
         clock = FindObjectOfType<SimulationClock>();
         if (clock != null)
-        {
             clock.OnTick += OnSimulationTick;
-        }
         else
-        {
             Debug.LogError("SimulationClock not found.");
-        }
     }
 
     private void OnDestroy()
@@ -61,71 +52,96 @@ public class GrowthSystem : MonoBehaviour
 
     private void ProcessGrowth()
     {
-        if (BuildingSpawner.Instance == null || MetricsSystem.Instance == null)
+        if (BuildingSpawner.Instance == null || MetricsSystem.Instance == null || ZoneSystem.Instance == null)
             return;
 
-        // قائمة مؤقتة لتجنب التعديل على المجموعة أثناء السير عليها
-        List<BuildingInstance> buildingsToRemove = new List<BuildingInstance>();
+        float residentialDemand = MetricsSystem.Instance.GetMetric("residential_demand");
+        float commercialDemand  = MetricsSystem.Instance.GetMetric("commercial_demand");
+        float industrialDemand  = MetricsSystem.Instance.GetMetric("industrial_demand");
 
-        foreach (var building in BuildingSpawner.Instance.GetAllBuildings())
+        var zoneOrder = new List<(ZoneType type, float demand)>
         {
-            var profile = FindProfile(building.Definition.zoneTags);
-            if (profile == null) continue;
+            (ZoneType.Residential, residentialDemand),
+            (ZoneType.Commercial,  commercialDemand),
+            (ZoneType.Industrial,  industrialDemand)
+        };
+        zoneOrder.Sort((a, b) => b.demand.CompareTo(a.demand));
 
-            var currentStage = profile.stages.Find(s => s.level == building.CurrentLevel);
-            if (currentStage == null) continue;
-
-            // تحقق من شروط النمو
-            if (CheckRules(currentStage.rules))
-            {
-                float chance = CalculateChance(currentStage.growthModel);
-                if (Random.value < chance)
-                {
-                    int nextLevel = building.CurrentLevel + 1;
-                    var nextStage = profile.stages.Find(s => s.level == nextLevel);
-                    if (nextStage != null)
-                    {
-                        building.SetLevel(nextLevel);
-                        MetricsSystem.Instance.RecalculateAll();
-                        Debug.Log($"{building.Definition.displayName} upgraded to Level {nextLevel} (Chance: {chance:P})");
-                    }
-                }
-            }
-
-            // تحقق من شروط التراجع
-            if (currentStage.declineRules != null && CheckRules(currentStage.declineRules))
-            {
-                float declineChance = CalculateChance(currentStage.declineModel);
-                if (Random.value < declineChance)
-                {
-                    int previousLevel = building.CurrentLevel - 1;
-                    if (previousLevel >= 1)
-                    {
-                        building.SetLevel(previousLevel);
-                        MetricsSystem.Instance.RecalculateAll();
-                        Debug.Log($"{building.Definition.displayName} declined to Level {previousLevel}");
-                    }
-                    else
-                    {
-                        buildingsToRemove.Add(building);
-                    }
-                }
-            }
-        }
-
-        // تنفيذ الحذف بعد انتهاء الحلقة بالكامل
-        foreach (var building in buildingsToRemove)
+        foreach (var (zoneType, demand) in zoneOrder)
         {
-            BuildingSpawner.Instance.RemoveBuilding(building);
-            Debug.Log($"{building.Definition.displayName} abandoned and removed.");
+            if (demand <= 0) continue;
+
+            if (TryBuildInZone(zoneType))
+                break;
         }
     }
 
-    private GrowthStage FindProfile(List<string> tags)
+    private bool TryBuildInZone(ZoneType zoneType)
     {
+        var buildableZones = ZoneSystem.Instance.GetBuildableZones(zoneType);
+        if (buildableZones.Count == 0) return false;
+
+        string buildingId = GetBuildingIdForZone(zoneType);
+        if (string.IsNullOrEmpty(buildingId)) return false;
+
+        var profile = FindProfile(zoneType);
+        if (profile == null) return false;
+
+        // TODO: دعم مستويات النمو الأعلى (Level 2, 3) بدلاً من Level 1 فقط
+        var currentStage = profile.stages.Find(s => s.level == 1);
+        if (currentStage == null) return false;
+
+        var zone = buildableZones[Random.Range(0, buildableZones.Count)];
+
+        if (!CheckRules(currentStage.rules)) return false;
+
+        float chance = CalculateChance(currentStage.growthModel);
+        if (Random.value < chance)
+        {
+            Vector3 worldPos = GridSystem.Instance.GridToWorld(zone.gridX, zone.gridY);
+
+            BuildingInstance instance = BuildingSpawner.Instance.SpawnBuilding(buildingId, worldPos);
+            if (instance != null)
+            {
+                if (OccupancyMap.Instance != null)
+                {
+                    int occupantId = OccupancyMap.Instance.OccupyArea(zone.gridX, zone.gridY, 1, 1);
+                    instance.SetOccupantId(occupantId);
+                }
+
+                Debug.Log($"Auto-built {buildingId} at ({zone.gridX}, {zone.gridY})");
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private string GetBuildingIdForZone(ZoneType zoneType)
+    {
+        // TODO: جلب معرف المبنى المناسب من DataRegistry حسب المستوى والطلب والوسوم
+        return zoneType switch
+        {
+            ZoneType.Residential => "residential_house_01",
+            ZoneType.Commercial  => "commercial_shop_01",
+            ZoneType.Industrial  => "industrial_factory_01",
+            _ => null
+        };
+    }
+
+    private GrowthStage FindProfile(ZoneType zoneType)
+    {
+        string tag = zoneType switch
+        {
+            ZoneType.Residential => "residential",
+            ZoneType.Commercial  => "commercial",
+            ZoneType.Industrial  => "industrial",
+            _ => ""
+        };
+
         foreach (var profile in growthProfileData.profiles.Values)
         {
-            if (profile.tags != null && profile.tags.Intersect(tags).Any())
+            if (profile.tags != null && profile.tags.Contains(tag))
                 return profile;
         }
         return null;
@@ -139,12 +155,25 @@ public class GrowthSystem : MonoBehaviour
             switch (rule.type)
             {
                 case "service_available":
-                    // TODO: ربط مع نظام الخدمات لاحقاً
+                    if (string.IsNullOrWhiteSpace(rule.serviceId))
+                    {
+                        Debug.LogWarning("Growth rule 'service_available' is missing serviceId.");
+                        return false;
+                    }
+                    if (ServiceSystem.Instance == null)
+                    {
+                        Debug.LogWarning("ServiceSystem is not available for growth check.");
+                        return false;
+                    }
+                    if (!ServiceSystem.Instance.HasService(rule.serviceId))
+                        return false;
                     break;
+
                 case "metric_min":
                     if (MetricsSystem.Instance.GetMetric(rule.metric) < rule.value)
                         return false;
                     break;
+
                 case "metric_max":
                     if (MetricsSystem.Instance.GetMetric(rule.metric) > rule.value)
                         return false;
