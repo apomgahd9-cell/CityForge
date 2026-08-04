@@ -81,7 +81,16 @@ public class GrowthSystem : MonoBehaviour
         var buildableZones = ZoneSystem.Instance.GetBuildableZones(zoneType);
         if (buildableZones.Count == 0) return false;
 
-        string buildingId = GetBuildingIdForZone(zoneType);
+        var zone = buildableZones[Random.Range(0, buildableZones.Count)];
+
+        var profile = FindProfile(zoneType);
+        if (profile == null) return false;
+
+        int growthLevel = zone.density;
+        var currentStage = profile.stages.Find(s => s.level == growthLevel);
+        if (currentStage == null) return false;
+
+        string buildingId = GetBuildingIdForZone(zoneType, growthLevel);
         if (string.IsNullOrEmpty(buildingId)) return false;
 
         if (DataRegistry.Instance == null)
@@ -93,20 +102,9 @@ public class GrowthSystem : MonoBehaviour
         BuildingDefinition def = DataRegistry.Instance.GetBuilding(buildingId);
         if (def == null) return false;
 
-        var profile = FindProfile(zoneType);
-        if (profile == null) return false;
-
-        // TODO: دعم مستويات النمو الأعلى (Level 2, 3) بدلاً من Level 1 فقط
-        var currentStage = profile.stages.Find(s => s.level == 1);
-        if (currentStage == null) return false;
-
-        var zone = buildableZones[Random.Range(0, buildableZones.Count)];
-
-        // استخدام أبعاد المبنى الحقيقية
         int areaWidth = def.size != null ? def.size.width : 1;
         int areaDepth = def.size != null ? def.size.depth : 1;
 
-        // التحقق من أن المساحة حرة
         if (OccupancyMap.Instance != null &&
             !OccupancyMap.Instance.IsAreaFree(zone.gridX, zone.gridY, areaWidth, areaDepth))
             return false;
@@ -127,7 +125,6 @@ public class GrowthSystem : MonoBehaviour
                     instance.SetOccupantId(occupantId);
                 }
 
-                // تحديث جميع بلاطات المبنى
                 TileType tileType = GetTileTypeForZone(zoneType);
                 for (int x = zone.gridX; x < zone.gridX + areaWidth; x++)
                 {
@@ -142,7 +139,7 @@ public class GrowthSystem : MonoBehaviour
                     }
                 }
 
-                Debug.Log($"Auto-built {buildingId} ({areaWidth}x{areaDepth}) at ({zone.gridX}, {zone.gridY})");
+                Debug.Log($"Auto-built {buildingId} ({areaWidth}x{areaDepth}) at ({zone.gridX}, {zone.gridY}) [Level: {growthLevel}]");
                 return true;
             }
         }
@@ -150,7 +147,7 @@ public class GrowthSystem : MonoBehaviour
         return false;
     }
 
-    private string GetBuildingIdForZone(ZoneType zoneType)
+    private string GetBuildingIdForZone(ZoneType zoneType, int level)
     {
         if (DataRegistry.Instance == null)
         {
@@ -168,8 +165,7 @@ public class GrowthSystem : MonoBehaviour
 
         if (string.IsNullOrEmpty(tag)) return null;
 
-        // TODO: دعم مستويات أعلى من 1 لاحقاً
-        BuildingDefinition def = DataRegistry.Instance.GetRandomBuildingByTagAndLevel(tag, 1);
+        BuildingDefinition def = DataRegistry.Instance.GetRandomBuildingByTagAndLevel(tag, level);
         return def?.id;
     }
 
