@@ -7,6 +7,7 @@ public class EconomySystem : MonoBehaviour, ISaveable
 
     private EconomyData economyData;
     public float CurrentFunds { get; private set; }
+    private float outstandingLoan;
 
     private SimulationClock clock;
     private int lastBudgetMonth = -1;
@@ -51,6 +52,7 @@ public class EconomySystem : MonoBehaviour, ISaveable
         }
 
         CurrentFunds = economyData.initialState.startingFunds;
+        outstandingLoan = 0f;
         Debug.Log($"Economy Online. Starting Funds: {CurrentFunds}");
 
         clock = FindObjectOfType<SimulationClock>();
@@ -111,16 +113,7 @@ public class EconomySystem : MonoBehaviour, ISaveable
             total += metricVal * source.weight * (taxRate / 100f);
         }
 
-        if (economyData.revenue.serviceFees != null && economyData.revenue.serviceFees.enabled)
-        {
-            if (economyData.revenue.serviceFees.water != null)
-                total += MetricsSystem.Instance.GetMetric(economyData.revenue.serviceFees.water.metric)
-                         * economyData.revenue.serviceFees.water.weight;
-            if (economyData.revenue.serviceFees.electricity != null)
-                total += MetricsSystem.Instance.GetMetric(economyData.revenue.serviceFees.electricity.metric)
-                         * economyData.revenue.serviceFees.electricity.weight;
-        }
-
+        // TODO: تفعيل رسوم الخدمات عند وجود نظام استهلاك
         return total;
     }
 
@@ -132,6 +125,11 @@ public class EconomySystem : MonoBehaviour, ISaveable
             total += ServiceSystem.Instance.GetTotalUpkeep();
         else
             Debug.LogWarning("ServiceSystem not available for expense calculation.");
+
+        // TODO: صيانة الطرق عند دمج RoadSystem
+
+        if (outstandingLoan > 0)
+            total += outstandingLoan * economyData.loan.interestRate / 12f;
 
         return total;
     }
@@ -153,13 +151,35 @@ public class EconomySystem : MonoBehaviour, ISaveable
     public void DeductFunds(float amount) => CurrentFunds -= amount;
     public void AddFunds(float amount) => CurrentFunds += amount;
 
+    public float GetOutstandingLoan() => outstandingLoan;
+
+    public void TakeLoan(float amount)
+    {
+        if (amount > economyData.loan.maxAmount - outstandingLoan)
+        {
+            Debug.LogWarning("Loan amount exceeds maximum.");
+            return;
+        }
+        outstandingLoan += amount;
+        CurrentFunds += amount;
+    }
+
+    public void RepayLoan(float amount)
+    {
+        amount = Mathf.Min(amount, outstandingLoan);
+        outstandingLoan -= amount;
+        CurrentFunds -= amount;
+    }
+
     public void Save(SaveData data)
     {
         data.currentFunds = CurrentFunds;
+        data.outstandingLoan = outstandingLoan;
     }
 
     public void Load(SaveData data)
     {
         CurrentFunds = data.currentFunds;
+        outstandingLoan = data.outstandingLoan;
     }
 }
