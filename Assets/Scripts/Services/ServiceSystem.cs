@@ -63,7 +63,9 @@ public class ServiceSystem : MonoBehaviour, ISaveable
             activeServices[serviceId] = 0;
 
         activeServices[serviceId]++;
-        Debug.Log($"Service added: {def.displayName} (id: {serviceId}, count: {activeServices[serviceId]})");
+
+        string serviceName = GetServiceName(def);
+        Debug.Log($"Service added: {serviceName} (id: {serviceId}, count: {activeServices[serviceId]})");
         ApplyServiceEffects();
     }
 
@@ -76,7 +78,9 @@ public class ServiceSystem : MonoBehaviour, ISaveable
         }
 
         activeServices[serviceId]--;
-        Debug.Log($"Service removed: {serviceLookup[serviceId].displayName} (id: {serviceId}, count: {activeServices[serviceId]})");
+
+        string serviceName = GetServiceName(serviceLookup[serviceId]);
+        Debug.Log($"Service removed: {serviceName} (id: {serviceId}, count: {activeServices[serviceId]})");
         ApplyServiceEffects();
     }
 
@@ -92,8 +96,14 @@ public class ServiceSystem : MonoBehaviour, ISaveable
 
     public float GetTotalUpkeep()
     {
-        // TODO: إضافة upkeep إلى ServiceDefinition لاحقاً
-        return 0f;
+        float total = 0f;
+        foreach (var kvp in activeServices)
+        {
+            if (kvp.Value <= 0) continue;
+            if (serviceLookup.TryGetValue(kvp.Key, out ServiceDefinition def))
+                total += def.upkeep * kvp.Value;
+        }
+        return total;
     }
 
     public void RecalculateAllEffects()
@@ -105,14 +115,13 @@ public class ServiceSystem : MonoBehaviour, ISaveable
     {
         if (servicesData == null || MetricsSystem.Instance == null) return;
 
-        // تصفير مقاييس الخدمات القديمة
         foreach (ServiceDefinition def in servicesData.services.Values)
         {
-            if (!string.IsNullOrEmpty(def.metricId))
-                MetricsSystem.Instance.SetMetric(def.metricId, 0);
+            string metric = GetMetricId(def);
+            if (!string.IsNullOrEmpty(metric))
+                MetricsSystem.Instance.SetMetric(metric, 0);
         }
 
-        // حساب التغطية من ServiceCoverageSystem إذا كان متاحاً
         if (ServiceCoverageSystem.Instance != null && GridSystem.Instance != null)
         {
             int totalTiles = GridSystem.Instance.Width * GridSystem.Instance.Height;
@@ -122,13 +131,36 @@ public class ServiceSystem : MonoBehaviour, ISaveable
                 int coveredCount = ServiceCoverageSystem.Instance.GetCoverage(def.id).Count;
                 float coveragePercent = totalTiles > 0 ? (float)coveredCount / totalTiles * 100f : 0f;
 
-                if (!string.IsNullOrEmpty(def.metricId))
+                string metric = GetMetricId(def);
+                if (!string.IsNullOrEmpty(metric))
                 {
-                    float current = MetricsSystem.Instance.GetMetric(def.metricId);
-                    MetricsSystem.Instance.SetMetric(def.metricId, current + coveragePercent);
+                    float current = MetricsSystem.Instance.GetMetric(metric);
+                    MetricsSystem.Instance.SetMetric(metric, current + coveragePercent);
                 }
             }
         }
+    }
+
+    private string GetMetricId(ServiceDefinition def)
+    {
+        if (def.effect != null && !string.IsNullOrEmpty(def.effect.metric))
+            return def.effect.metric;
+
+        if (!string.IsNullOrEmpty(def.metricId))
+            return def.metricId;
+
+        return null;
+    }
+
+    private string GetServiceName(ServiceDefinition def)
+    {
+        if (!string.IsNullOrEmpty(def.displayName))
+            return def.displayName;
+
+        if (!string.IsNullOrEmpty(def.name))
+            return def.name;
+
+        return def.id;
     }
 
     public void Save(SaveData data)
