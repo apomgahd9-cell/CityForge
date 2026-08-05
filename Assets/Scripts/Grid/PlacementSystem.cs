@@ -233,12 +233,24 @@ public class PlacementSystem : MonoBehaviour
     {
         if (instance == null) return;
 
+        BuildingDefinition definition = instance.Definition;
+
+        if (EconomySystem.Instance != null)
+        {
+            float buildCost = definition.construction != null ? definition.construction.cost : 0f;
+            float refund = EconomySystem.Instance.RefundDemolition(buildCost);
+
+            string buildingName = !string.IsNullOrEmpty(definition.displayName)
+                ? definition.displayName
+                : definition.id;
+            Debug.Log($"Demolition refund for {buildingName}: {refund}");
+        }
+
         if (OccupancyMap.Instance != null && instance.OccupantId > 0)
             OccupancyMap.Instance.FreeAreaByOccupantId(instance.OccupantId);
 
         if (GridSystem.Instance != null)
         {
-            BuildingDefinition definition = instance.Definition;
             Vector3 pos = instance.Position;
 
             if (GridSystem.Instance.WorldToGrid(pos, out int gridX, out int gridY))

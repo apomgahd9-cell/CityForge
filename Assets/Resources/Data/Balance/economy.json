@@ -136,5 +136,6 @@
   "financialState": {
     "bankruptcyThreshold": -50000,
     "description": "If funds fall below this, game over or emergency grants."
-  }
+  },
+  "demolitionRefundRate": 0.5
 }
