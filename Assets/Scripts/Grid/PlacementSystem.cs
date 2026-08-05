@@ -48,6 +48,10 @@ public class PlacementSystem : MonoBehaviour
             return false;
         }
 
+        string buildingName = !string.IsNullOrEmpty(definition.displayName)
+            ? definition.displayName
+            : buildingId;
+
         if (!GridSystem.Instance.WorldToGrid(worldPosition, out int gridX, out int gridY))
         {
             Debug.LogWarning("Position is outside grid bounds.");
@@ -60,6 +64,13 @@ public class PlacementSystem : MonoBehaviour
         if (!OccupancyMap.Instance.IsAreaFree(gridX, gridY, areaWidth, areaDepth))
         {
             Debug.LogWarning($"Area ({gridX},{gridY}) {areaWidth}x{areaDepth} is not free.");
+            return false;
+        }
+
+        float buildCost = definition.construction != null ? definition.construction.cost : 0f;
+        if (EconomySystem.Instance != null && !EconomySystem.Instance.CanAfford(buildCost))
+        {
+            Debug.LogWarning($"Not enough funds to build {buildingName}.");
             return false;
         }
 
@@ -80,6 +91,11 @@ public class PlacementSystem : MonoBehaviour
 
         instance.SetOccupantId(occupantId);
 
+        if (EconomySystem.Instance != null)
+        {
+            EconomySystem.Instance.DeductFunds(buildCost);
+        }
+
         TileType tileType = GetTileTypeForBuilding(definition);
 
         for (int x = gridX; x < gridX + areaWidth; x++)
@@ -95,7 +111,7 @@ public class PlacementSystem : MonoBehaviour
             }
         }
 
-        Debug.Log($"Placed {definition.displayName} at ({gridX}, {gridY}), size: {areaWidth}x{areaDepth}, occupant ID: {occupantId}");
+        Debug.Log($"Placed {buildingName} at ({gridX}, {gridY}), size: {areaWidth}x{areaDepth}, cost: {buildCost}");
         return true;
     }
 
