@@ -18,24 +18,24 @@
       "default": 60,
       "description": "Average citizen happiness in the area."
     },
-    "education": {
-      "id": "education",
+    "education_coverage": {
+      "id": "education_coverage",
       "displayName": "التعليم",
       "type": "numeric",
       "range": { "min": 0, "max": 100 },
       "default": 20,
       "description": "Education level provided by coverage."
     },
-    "health": {
-      "id": "health",
+    "health_coverage": {
+      "id": "health_coverage",
       "displayName": "الصحة",
       "type": "numeric",
       "range": { "min": 0, "max": 100 },
       "default": 30,
       "description": "Health level from hospital coverage."
     },
-    "crime": {
-      "id": "crime",
+    "crime_rate": {
+      "id": "crime_rate",
       "displayName": "الجريمة",
       "type": "numeric",
       "range": { "min": 0, "max": 100 },
