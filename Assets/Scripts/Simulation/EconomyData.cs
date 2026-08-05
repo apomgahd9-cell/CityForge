@@ -11,6 +11,7 @@ public class EconomyData
     public Expenses expenses;
     public Loan loan;
     public FinancialState financialState;
+    public float demolitionRefundRate = 0.5f;
 }
 
 [Serializable]
@@ -22,7 +23,7 @@ public class InitialState
 [Serializable]
 public class BudgetCycle
 {
-    public string period; // "monthly"
+    public string period;
     public string description;
 }
 
