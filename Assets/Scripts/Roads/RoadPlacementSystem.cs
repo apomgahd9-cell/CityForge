@@ -57,12 +57,23 @@ public class RoadPlacementSystem : MonoBehaviour
             return false;
         }
 
+        if (EconomySystem.Instance != null && !EconomySystem.Instance.CanAfford(defaultRoad.costPerTile))
+        {
+            Debug.LogWarning("Not enough funds to build road.");
+            return false;
+        }
+
         bool placed = RoadNetwork.Instance.AddRoad(gridX, gridY);
         if (placed)
         {
+            if (EconomySystem.Instance != null)
+            {
+                EconomySystem.Instance.DeductFunds(defaultRoad.costPerTile);
+            }
+
             RoadGraph.Instance?.Rebuild();
             ServiceCoverageSystem.Instance?.BuildAllCoverage();
-            Debug.Log($"Road placed at ({gridX}, {gridY})");
+            Debug.Log($"Road placed at ({gridX}, {gridY}) [Cost: {defaultRoad.costPerTile}]");
         }
 
         return placed;
