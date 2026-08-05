@@ -126,7 +126,13 @@ public class EconomySystem : MonoBehaviour, ISaveable
         else
             Debug.LogWarning("ServiceSystem not available for expense calculation.");
 
-        // TODO: صيانة الطرق عند دمج RoadSystem
+        if (RoadNetwork.Instance != null &&
+            economyData.expenses != null &&
+            economyData.expenses.roadMaintenance != null)
+        {
+            total += RoadNetwork.Instance.RoadCount *
+                     economyData.expenses.roadMaintenance.costPerTile;
+        }
 
         if (outstandingLoan > 0)
             total += outstandingLoan * economyData.loan.interestRate / 12f;
