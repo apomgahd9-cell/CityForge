@@ -8,11 +8,6 @@ public class MetricsSystem : MonoBehaviour
     private Dictionary<string, float> metrics = new();
     private List<BuildingInstance> buildings = new();
 
-    // TODO: فصل المقاييس حسب المصدر:
-    // - Building Metrics (يحسبها MetricsSystem)
-    // - Service Metrics (يحسبها ServiceSystem)
-    // - Economy Metrics (يحسبها EconomySystem)
-    // حتى لا تقوم الأنظمة بمسح بيانات بعضها البعض.
     private static readonly string[] buildingMetrics =
     {
         "population_total",
@@ -45,22 +40,32 @@ public class MetricsSystem : MonoBehaviour
 
     private void InitializeMetrics()
     {
-        // مقاييس المباني والسكان
-        metrics["population_total"] = 0;
-        metrics["jobs_available"] = 0;
-        metrics["workforce_available"] = 0;
-        metrics["jobs_industrial"] = 0;
-        metrics["freight_access"] = 0;
-        metrics["pollution"] = 0;
-        metrics["customer_access"] = 0;
-
-        // مقاييس الخدمات (تُدار بواسطة ServiceSystem، لا يمسحها MetricsSystem)
-        metrics["water_coverage"] = 0;
-        metrics["power_coverage"] = 0;
-        metrics["crime_rate"] = 100;
-        metrics["fire_risk"] = 0;
-        metrics["health_coverage"] = 0;
-        metrics["education_coverage"] = 0;
+        MetricsData data = JsonLoader.Load<MetricsData>("Data/Balance/metrics");
+        if (data != null && data.metrics != null)
+        {
+            foreach (var kvp in data.metrics)
+            {
+                metrics[kvp.Key] = kvp.Value.defaultValue;
+            }
+            Debug.Log($"MetricsSystem initialized from metrics.json ({metrics.Count} metrics)");
+        }
+        else
+        {
+            Debug.LogWarning("metrics.json not found. Using fallback values.");
+            metrics["population_total"] = 0;
+            metrics["jobs_available"] = 0;
+            metrics["workforce_available"] = 0;
+            metrics["jobs_industrial"] = 0;
+            metrics["freight_access"] = 0;
+            metrics["pollution"] = 0;
+            metrics["customer_access"] = 0;
+            metrics["water_coverage"] = 0;
+            metrics["power_coverage"] = 0;
+            metrics["crime_rate"] = 100;
+            metrics["fire_risk"] = 0;
+            metrics["health_coverage"] = 0;
+            metrics["education_coverage"] = 0;
+        }
     }
 
     public void AddBuilding(BuildingInstance instance)
@@ -84,7 +89,6 @@ public class MetricsSystem : MonoBehaviour
     private void UpdateMetrics(int tick)
     {
         RecalculateAll();
-        Debug.Log($"Metrics Tick {tick}: Population={GetMetric("population_total")}, Jobs={GetMetric("jobs_available")}");
     }
 
     public void RecalculateAll()
@@ -94,7 +98,6 @@ public class MetricsSystem : MonoBehaviour
             ApplyBuilding(building);
     }
 
-    // تم التعديل: تصفير مقاييس المباني فقط، وليس جميع المقاييس
     private void ResetBuildingMetrics()
     {
         foreach (var metric in buildingMetrics)
@@ -110,7 +113,6 @@ public class MetricsSystem : MonoBehaviour
 
         metrics["population_total"] += instance.Population;
         metrics["jobs_available"] += instance.Jobs;
-
         metrics["customer_access"] += def.outputs.customer_access;
         metrics["freight_access"] += def.outputs.freight_access;
         metrics["pollution"] += def.outputs.pollution;
