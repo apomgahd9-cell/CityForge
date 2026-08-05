@@ -113,7 +113,6 @@ public class EconomySystem : MonoBehaviour, ISaveable
             total += metricVal * source.weight * (taxRate / 100f);
         }
 
-        // TODO: تفعيل رسوم الخدمات عند وجود نظام استهلاك
         return total;
     }
 
@@ -175,6 +174,16 @@ public class EconomySystem : MonoBehaviour, ISaveable
         amount = Mathf.Min(amount, outstandingLoan);
         outstandingLoan -= amount;
         CurrentFunds -= amount;
+    }
+
+    public float RefundDemolition(float buildCost)
+    {
+        if (economyData == null)
+            return 0f;
+
+        float refund = buildCost * economyData.demolitionRefundRate;
+        AddFunds(refund);
+        return refund;
     }
 
     public void Save(SaveData data)
