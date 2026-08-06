@@ -13,19 +13,9 @@
       "level": 1,
       "model": "Models/Residential/res_house_01",
       "size": { "width": 1, "depth": 1 },
-      "construction": {
-        "cost": 500,
-        "timeTicks": 20
-      },
-      "outputs": {
-        "population": { "min": 4, "max": 8 }
-      },
-      "stats": {
-        "power_usage": 2,
-        "water_usage": 2,
-        "garbage_production": 1,
-        "happiness_base": 70
-      },
+      "construction": { "cost": 500, "timeTicks": 20 },
+      "outputs": { "population": { "min": 4, "max": 8 } },
+      "stats": { "power_usage": 2, "water_usage": 2, "garbage_production": 1, "happiness_base": 70 },
       "upgradesTo": null,
       "variants": ["residential_house_02", "residential_house_03"]
     },
@@ -39,20 +29,9 @@
       "level": 1,
       "model": "Models/Commercial/com_shop_01",
       "size": { "width": 1, "depth": 1 },
-      "construction": {
-        "cost": 700,
-        "timeTicks": 25
-      },
-      "outputs": {
-        "jobs_available": { "min": 3, "max": 6 },
-        "customer_access": 10
-      },
-      "stats": {
-        "power_usage": 3,
-        "water_usage": 1,
-        "garbage_production": 1,
-        "happiness_base": 60
-      },
+      "construction": { "cost": 700, "timeTicks": 25 },
+      "outputs": { "jobs_available": { "min": 3, "max": 6 }, "customer_access": 10 },
+      "stats": { "power_usage": 3, "water_usage": 1, "garbage_production": 1, "happiness_base": 60 },
       "upgradesTo": null,
       "variants": ["commercial_shop_02"]
     },
@@ -66,23 +45,113 @@
       "level": 1,
       "model": "Models/Industrial/ind_factory_01",
       "size": { "width": 2, "depth": 2 },
-      "construction": {
-        "cost": 1200,
-        "timeTicks": 35
-      },
-      "outputs": {
-        "jobs_available": { "min": 8, "max": 15 },
-        "freight_access": 15,
-        "pollution": 10
-      },
-      "stats": {
-        "power_usage": 8,
-        "water_usage": 5,
-        "garbage_production": 2,
-        "happiness_base": 40
-      },
+      "construction": { "cost": 1200, "timeTicks": 35 },
+      "outputs": { "jobs_available": { "min": 8, "max": 15 }, "freight_access": 15, "pollution": 10 },
+      "stats": { "power_usage": 8, "water_usage": 5, "garbage_production": 2, "happiness_base": 40 },
       "upgradesTo": null,
       "variants": ["industrial_factory_02"]
+    },
+    {
+      "id": "water_tower",
+      "type": "service",
+      "displayName": "Water Tower",
+      "category": "water",
+      "zoneTags": ["service"],
+      "growthProfile": null,
+      "level": 1,
+      "model": "Models/Services/water_tower",
+      "size": { "width": 1, "depth": 1 },
+      "construction": { "cost": 500, "timeTicks": 20 },
+      "outputs": {},
+      "stats": { "power_usage": 2, "water_usage": 0, "garbage_production": 0, "happiness_base": 50 },
+      "services": [{ "serviceId": "water_tower", "amount": 1 }],
+      "upgradesTo": null,
+      "variants": []
+    },
+    {
+      "id": "power_plant",
+      "type": "service",
+      "displayName": "Power Plant",
+      "category": "electricity",
+      "zoneTags": ["service"],
+      "growthProfile": null,
+      "level": 1,
+      "model": "Models/Services/power_plant",
+      "size": { "width": 2, "depth": 2 },
+      "construction": { "cost": 1000, "timeTicks": 30 },
+      "outputs": {},
+      "stats": { "power_usage": 0, "water_usage": 3, "garbage_production": 1, "happiness_base": 40 },
+      "services": [{ "serviceId": "power_plant", "amount": 1 }],
+      "upgradesTo": null,
+      "variants": []
+    },
+    {
+      "id": "police_station",
+      "type": "service",
+      "displayName": "Police Station",
+      "category": "police",
+      "zoneTags": ["service"],
+      "growthProfile": null,
+      "level": 1,
+      "model": "Models/Services/police_station",
+      "size": { "width": 1, "depth": 1 },
+      "construction": { "cost": 800, "timeTicks": 25 },
+      "outputs": {},
+      "stats": { "power_usage": 5, "water_usage": 3, "garbage_production": 1, "happiness_base": 50 },
+      "services": [{ "serviceId": "police_station", "amount": 1 }],
+      "upgradesTo": null,
+      "variants": []
+    },
+    {
+      "id": "fire_station",
+      "type": "service",
+      "displayName": "Fire Station",
+      "category": "fire",
+      "zoneTags": ["service"],
+      "growthProfile": null,
+      "level": 1,
+      "model": "Models/Services/fire_station",
+      "size": { "width": 1, "depth": 1 },
+      "construction": { "cost": 600, "timeTicks": 20 },
+      "outputs": {},
+      "stats": { "power_usage": 3, "water_usage": 5, "garbage_production": 1, "happiness_base": 50 },
+      "services": [{ "serviceId": "fire_station", "amount": 1 }],
+      "upgradesTo": null,
+      "variants": []
+    },
+    {
+      "id": "hospital",
+      "type": "service",
+      "displayName": "Hospital",
+      "category": "health",
+      "zoneTags": ["service"],
+      "growthProfile": null,
+      "level": 1,
+      "model": "Models/Services/hospital",
+      "size": { "width": 2, "depth": 2 },
+      "construction": { "cost": 1200, "timeTicks": 35 },
+      "outputs": {},
+      "stats": { "power_usage": 10, "water_usage": 8, "garbage_production": 2, "happiness_base": 60 },
+      "services": [{ "serviceId": "hospital", "amount": 1 }],
+      "upgradesTo": null,
+      "variants": []
+    },
+    {
+      "id": "school",
+      "type": "service",
+      "displayName": "School",
+      "category": "education",
+      "zoneTags": ["service"],
+      "growthProfile": null,
+      "level": 1,
+      "model": "Models/Services/school",
+      "size": { "width": 2, "depth": 2 },
+      "construction": { "cost": 900, "timeTicks": 30 },
+      "outputs": {},
+      "stats": { "power_usage": 6, "water_usage": 4, "garbage_production": 1, "happiness_base": 55 },
+      "services": [{ "serviceId": "school", "amount": 1 }],
+      "upgradesTo": null,
+      "variants": []
     }
   ]
 }
