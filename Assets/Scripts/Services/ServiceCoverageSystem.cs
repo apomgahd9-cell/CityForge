@@ -6,6 +6,7 @@ public class ServiceCoverageSystem : MonoBehaviour
     public static ServiceCoverageSystem Instance { get; private set; }
 
     private Dictionary<string, HashSet<Vector2Int>> coverage = new Dictionary<string, HashSet<Vector2Int>>();
+    private ServicesData servicesData;
 
     private void Awake()
     {
@@ -16,6 +17,16 @@ public class ServiceCoverageSystem : MonoBehaviour
         }
         Instance = this;
         DontDestroyOnLoad(gameObject);
+    }
+
+    private void Start()
+    {
+        servicesData = JsonLoader.Load<ServicesData>("Data/Services/services");
+
+        if (servicesData == null)
+        {
+            Debug.LogWarning("Failed to load services.json. Using fallback service distances.");
+        }
     }
 
     public void RebuildCoverage()
@@ -49,21 +60,21 @@ public class ServiceCoverageSystem : MonoBehaviour
 
         foreach (var kvp in serviceLocations)
         {
-            string serviceType = kvp.Key;
+            string serviceId = kvp.Key;
             List<Vector2Int> origins = kvp.Value;
 
             HashSet<Vector2Int> coveredTiles = new HashSet<Vector2Int>();
 
             foreach (Vector2Int origin in origins)
             {
-                HashSet<Vector2Int> fromOrigin = BFS(origin, GetMaxDistance(serviceType));
+                int maxDistance = GetMaxDistance(serviceId);
+                HashSet<Vector2Int> fromOrigin = BFS(origin, maxDistance);
                 coveredTiles.UnionWith(fromOrigin);
             }
 
-            coverage[serviceType] = coveredTiles;
+            coverage[serviceId] = coveredTiles;
         }
 
-        // إخطار ServiceSystem بتحديث المقاييس
         ServiceSystem.Instance?.RecalculateAllEffects();
 
         Debug.Log($"ServiceCoverage built for {coverage.Count} service types.");
@@ -143,29 +154,25 @@ public class ServiceCoverageSystem : MonoBehaviour
         return locations;
     }
 
-    private int GetMaxDistance(string serviceType)
+    private int GetMaxDistance(string serviceId)
     {
-        // TODO: استرجاع maxDistance من ServiceDefinition لاحقاً
-        return serviceType switch
+        if (servicesData != null && servicesData.services != null &&
+            servicesData.services.TryGetValue(serviceId, out ServiceDefinition def))
         {
-            "electricity" => 15,
-            "water" => 15,
-            "police" => 12,
-            "fire" => 10,
-            "health" => 15,
-            "education" => 14,
-            _ => 10
-        };
+            return def.radius;
+        }
+
+        return 10;
     }
 
-    public HashSet<Vector2Int> GetCoverage(string serviceType)
+    public HashSet<Vector2Int> GetCoverage(string serviceId)
     {
-        coverage.TryGetValue(serviceType, out HashSet<Vector2Int> result);
+        coverage.TryGetValue(serviceId, out HashSet<Vector2Int> result);
         return result ?? new HashSet<Vector2Int>();
     }
 
-    public bool IsCovered(int gridX, int gridY, string serviceType)
+    public bool IsCovered(int gridX, int gridY, string serviceId)
     {
-        return GetCoverage(serviceType).Contains(new Vector2Int(gridX, gridY));
+        return GetCoverage(serviceId).Contains(new Vector2Int(gridX, gridY));
     }
 }
