@@ -106,6 +106,13 @@ public class RoadPlacementSystem : MonoBehaviour
         }
 
         RoadNetwork.Instance.RemoveRoad(gridX, gridY);
+
+        if (EconomySystem.Instance != null)
+        {
+            float refund = EconomySystem.Instance.RefundDemolition(defaultRoad.costPerTile);
+            Debug.Log($"Road demolition refund: {refund} at ({gridX}, {gridY})");
+        }
+
         RoadGraph.Instance?.Rebuild();
         ServiceCoverageSystem.Instance?.BuildAllCoverage();
         Debug.Log($"Road removed at ({gridX}, {gridY})");
