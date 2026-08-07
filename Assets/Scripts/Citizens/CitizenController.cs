@@ -31,6 +31,11 @@ public class CitizenController : MonoBehaviour
         citizens.Remove(citizen);
     }
 
+    public IReadOnlyList<Citizen> GetAllCitizens()
+    {
+        return citizens.AsReadOnly();
+    }
+
     public bool RequestPath(Citizen citizen, Vector3 targetPosition)
     {
         if (GridSystem.Instance == null || PathfindingSystem.Instance == null)
