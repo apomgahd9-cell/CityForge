@@ -54,18 +54,42 @@ public class JobAssignmentSystem : MonoBehaviour
             BuildingInstance workplace = FindAvailableJob();
             if (workplace == null) break;
 
+            Vehicle createdVehicle = null;
+
+            if (citizen.currentVehicle == null && VehicleSpawner.Instance != null)
+            {
+                createdVehicle = VehicleSpawner.Instance.SpawnVehicle(citizen.position);
+                citizen.currentVehicle = createdVehicle;
+            }
+
+            if (CitizenController.Instance == null)
+            {
+                RollbackVehicle(citizen, createdVehicle);
+                continue;
+            }
+
+            bool pathFound = CitizenController.Instance.RequestPath(citizen, workplace.Position);
+
+            if (!pathFound)
+            {
+                RollbackVehicle(citizen, createdVehicle);
+                continue;
+            }
+
             citizen.workBuilding = workplace;
             unemployedCitizens.RemoveAt(i);
+            citizen.state = CitizenState.GoingToWork;
 
-            if (CitizenController.Instance != null)
-            {
-                bool pathFound = CitizenController.Instance.RequestPath(citizen, workplace.Position);
-                if (pathFound)
-                {
-                    citizen.state = CitizenState.GoingToWork;
-                    Debug.Log($"{citizen.id} assigned to {workplace.Definition.displayName}");
-                }
-            }
+            Debug.Log($"{citizen.id} assigned to {workplace.Definition.displayName}");
+        }
+    }
+
+    private void RollbackVehicle(Citizen citizen, Vehicle createdVehicle)
+    {
+        if (createdVehicle != null)
+        {
+            VehicleSpawner.Instance?.DespawnVehicle(createdVehicle);
+            citizen.currentVehicle = null;
         }
     }
 
