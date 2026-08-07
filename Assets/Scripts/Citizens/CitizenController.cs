@@ -138,6 +138,7 @@ public class CitizenController : MonoBehaviour
                 citizen.state = CitizenState.AtWork;
                 if (citizen.workBuilding != null)
                     citizen.position = citizen.workBuilding.Position;
+                CitizenScheduleSystem.Instance?.RegisterAtWork(citizen);
                 break;
             case CitizenState.GoingHome:
                 citizen.state = CitizenState.AtHome;
