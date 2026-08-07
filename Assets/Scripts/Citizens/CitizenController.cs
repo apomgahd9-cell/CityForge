@@ -54,7 +54,17 @@ public class CitizenController : MonoBehaviour
         if (path == null || path.Count == 0)
             return false;
 
-        citizen.SetPath(path);
+        if (citizen.currentVehicle != null)
+        {
+            citizen.currentVehicle.SetPath(path);
+            citizen.currentVehicle.position = citizen.position;
+            VehicleController.Instance?.RegisterVehicle(citizen.currentVehicle);
+        }
+        else
+        {
+            citizen.SetPath(path);
+        }
+
         return true;
     }
 
@@ -66,6 +76,20 @@ public class CitizenController : MonoBehaviour
         for (int i = citizens.Count - 1; i >= 0; i--)
         {
             Citizen citizen = citizens[i];
+
+            if (citizen.currentVehicle != null && citizen.currentVehicle.isMoving)
+            {
+                citizen.position = citizen.currentVehicle.position;
+                continue;
+            }
+
+            if (citizen.currentVehicle != null && !citizen.currentVehicle.isMoving &&
+                (citizen.state == CitizenState.GoingToWork || citizen.state == CitizenState.GoingHome))
+            {
+                HandleArrival(citizen);
+                continue;
+            }
+
             if (citizen.state != CitizenState.GoingToWork &&
                 citizen.state != CitizenState.GoingHome &&
                 citizen.state != CitizenState.GoingToService)
@@ -82,22 +106,7 @@ public class CitizenController : MonoBehaviour
 
                 if (citizen.HasArrived())
                 {
-                    switch (citizen.state)
-                    {
-                        case CitizenState.GoingToWork:
-                            citizen.state = CitizenState.AtWork;
-                            if (citizen.workBuilding != null)
-                                citizen.position = citizen.workBuilding.Position;
-                            break;
-                        case CitizenState.GoingHome:
-                            citizen.state = CitizenState.AtHome;
-                            if (citizen.homeBuilding != null)
-                                citizen.position = citizen.homeBuilding.Position;
-                            break;
-                        case CitizenState.GoingToService:
-                            citizen.state = CitizenState.Idle;
-                            break;
-                    }
+                    HandleArrival(citizen);
                 }
             }
             else
@@ -113,6 +122,31 @@ public class CitizenController : MonoBehaviour
                     citizen.position += direction.normalized * step;
                 }
             }
+        }
+    }
+
+    private void HandleArrival(Citizen citizen)
+    {
+        if (citizen.currentVehicle != null)
+        {
+            VehicleController.Instance?.UnregisterVehicle(citizen.currentVehicle);
+        }
+
+        switch (citizen.state)
+        {
+            case CitizenState.GoingToWork:
+                citizen.state = CitizenState.AtWork;
+                if (citizen.workBuilding != null)
+                    citizen.position = citizen.workBuilding.Position;
+                break;
+            case CitizenState.GoingHome:
+                citizen.state = CitizenState.AtHome;
+                if (citizen.homeBuilding != null)
+                    citizen.position = citizen.homeBuilding.Position;
+                break;
+            case CitizenState.GoingToService:
+                citizen.state = CitizenState.Idle;
+                break;
         }
     }
 }
