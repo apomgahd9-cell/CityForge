@@ -16,6 +16,7 @@ public class Citizen
     public string id;
     public BuildingInstance homeBuilding;
     public BuildingInstance workBuilding;
+    public Vehicle currentVehicle;
     public Vector3 position;
     public List<Vector2Int> currentPath;
     public int pathIndex;
