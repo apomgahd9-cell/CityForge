@@ -78,9 +78,13 @@ public class RoadGraph : MonoBehaviour
 
     private float CalculateEdgeCost(Vector2Int from, Vector2Int to)
     {
-        float baseSpeed = 40f;
+        RoadDefinition def = RoadNetwork.Instance != null
+            ? RoadNetwork.Instance.GetRoadDefinition(from.x, from.y)
+            : null;
+
+        float speed = def != null ? def.speed : 30f;
         float distance = Vector2Int.Distance(from, to);
-        return distance / baseSpeed;
+        return distance / speed;
     }
 
     public RoadNode GetNode(int gridX, int gridY)
