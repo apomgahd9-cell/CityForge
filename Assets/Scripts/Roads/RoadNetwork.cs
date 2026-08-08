@@ -5,7 +5,8 @@ public class RoadNetwork : MonoBehaviour, ISaveable
 {
     public static RoadNetwork Instance { get; private set; }
 
-    private HashSet<Vector2Int> roadTiles = new HashSet<Vector2Int>();
+    private Dictionary<Vector2Int, string> roadTiles = new Dictionary<Vector2Int, string>();
+    private string defaultRoadType = "basic_road";
 
     public int LoadPriority => 10;
 
@@ -32,7 +33,7 @@ public class RoadNetwork : MonoBehaviour, ISaveable
             SaveSystem.Instance.Unregister(this);
     }
 
-    public bool AddRoad(int gridX, int gridY)
+    public bool AddRoad(int gridX, int gridY, string roadType = null)
     {
         if (GridSystem.Instance == null)
         {
@@ -47,13 +48,14 @@ public class RoadNetwork : MonoBehaviour, ISaveable
         }
 
         Vector2Int pos = new Vector2Int(gridX, gridY);
-        if (roadTiles.Contains(pos))
+        if (roadTiles.ContainsKey(pos))
         {
             Debug.LogWarning($"Road already exists at ({gridX}, {gridY})");
             return false;
         }
 
-        roadTiles.Add(pos);
+        string type = roadType ?? defaultRoadType;
+        roadTiles[pos] = type;
         GridSystem.Instance.SetTile(gridX, gridY, new TileData
         {
             gridX = gridX,
@@ -73,7 +75,7 @@ public class RoadNetwork : MonoBehaviour, ISaveable
         }
 
         Vector2Int pos = new Vector2Int(gridX, gridY);
-        if (!roadTiles.Contains(pos))
+        if (!roadTiles.ContainsKey(pos))
         {
             Debug.LogWarning($"No road at ({gridX}, {gridY})");
             return false;
@@ -96,7 +98,30 @@ public class RoadNetwork : MonoBehaviour, ISaveable
             !GridSystem.Instance.IsValidGridPosition(gridX, gridY))
             return false;
 
-        return roadTiles.Contains(new Vector2Int(gridX, gridY));
+        return roadTiles.ContainsKey(new Vector2Int(gridX, gridY));
+    }
+
+    public string GetRoadType(int gridX, int gridY)
+    {
+        roadTiles.TryGetValue(new Vector2Int(gridX, gridY), out string type);
+        return type ?? defaultRoadType;
+    }
+
+    public RoadDefinition GetRoadDefinition(int gridX, int gridY)
+    {
+        string type = GetRoadType(gridX, gridY);
+        if (DataRegistry.Instance != null)
+        {
+            RoadDefinition def = DataRegistry.Instance.GetRoad(type);
+            if (def != null) return def;
+        }
+        return new RoadDefinition
+        {
+            id = defaultRoadType,
+            displayName = "Basic Road",
+            speed = 30,
+            lanes = 1
+        };
     }
 
     public List<Vector2Int> GetNeighbors(int gridX, int gridY)
@@ -132,13 +157,13 @@ public class RoadNetwork : MonoBehaviour, ISaveable
         else
             data.roads.Clear();
 
-        foreach (Vector2Int pos in roadTiles)
+        foreach (var kvp in roadTiles)
         {
             data.roads.Add(new RoadSaveData
             {
-                type = "basic_road",
-                gridX = pos.x,
-                gridY = pos.y
+                type = kvp.Value,
+                gridX = kvp.Key.x,
+                gridY = kvp.Key.y
             });
         }
     }
@@ -151,8 +176,9 @@ public class RoadNetwork : MonoBehaviour, ISaveable
 
         foreach (RoadSaveData saved in data.roads)
         {
+            string type = string.IsNullOrEmpty(saved.type) ? defaultRoadType : saved.type;
             Vector2Int pos = new Vector2Int(saved.gridX, saved.gridY);
-            roadTiles.Add(pos);
+            roadTiles[pos] = type;
 
             if (GridSystem.Instance != null)
             {
