@@ -4,15 +4,7 @@ public class RoadPlacementSystem : MonoBehaviour
 {
     public static RoadPlacementSystem Instance { get; private set; }
 
-    private RoadDefinition defaultRoad = new RoadDefinition
-    {
-        id = "basic_road",
-        displayName = "Basic Road",
-        costPerTile = 10f,
-        upkeepPerTile = 1f,
-        speed = 40,
-        lanes = 2
-    };
+    private RoadDefinition defaultRoad;
 
     private void Awake()
     {
@@ -23,10 +15,40 @@ public class RoadPlacementSystem : MonoBehaviour
         }
         Instance = this;
         DontDestroyOnLoad(gameObject);
+
+        LoadDefaultRoad();
+    }
+
+    private void LoadDefaultRoad()
+    {
+        if (DataRegistry.Instance != null)
+        {
+            defaultRoad = DataRegistry.Instance.GetRoad("basic_road");
+        }
+
+        if (defaultRoad == null)
+        {
+            defaultRoad = new RoadDefinition
+            {
+                id = "basic_road",
+                displayName = "Basic Road",
+                costPerTile = 10f,
+                upkeepPerTile = 1f,
+                speed = 30,
+                lanes = 1
+            };
+            Debug.LogWarning("Could not load road definition from DataRegistry. Using fallback.");
+        }
     }
 
     public bool PlaceRoad(Vector3 worldPosition)
     {
+        if (defaultRoad == null)
+        {
+            Debug.LogError("Road definition not loaded.");
+            return false;
+        }
+
         if (GridSystem.Instance == null)
         {
             Debug.LogError("GridSystem not found.");
@@ -63,7 +85,7 @@ public class RoadPlacementSystem : MonoBehaviour
             return false;
         }
 
-        bool placed = RoadNetwork.Instance.AddRoad(gridX, gridY);
+        bool placed = RoadNetwork.Instance.AddRoad(gridX, gridY, defaultRoad.id);
         if (placed)
         {
             if (EconomySystem.Instance != null)
@@ -73,7 +95,7 @@ public class RoadPlacementSystem : MonoBehaviour
 
             RoadGraph.Instance?.Rebuild();
             ServiceCoverageSystem.Instance?.BuildAllCoverage();
-            Debug.Log($"Road placed at ({gridX}, {gridY}) [Cost: {defaultRoad.costPerTile}]");
+            Debug.Log($"Road placed at ({gridX}, {gridY}) [Type: {defaultRoad.id}, Cost: {defaultRoad.costPerTile}]");
         }
 
         return placed;
@@ -105,11 +127,15 @@ public class RoadPlacementSystem : MonoBehaviour
             return false;
         }
 
+        // استخدام نوع الطريق الفعلي لحساب الاسترداد
+        RoadDefinition roadDef = RoadNetwork.Instance.GetRoadDefinition(gridX, gridY);
+        float refundCost = roadDef != null ? roadDef.costPerTile : defaultRoad.costPerTile;
+
         RoadNetwork.Instance.RemoveRoad(gridX, gridY);
 
         if (EconomySystem.Instance != null)
         {
-            float refund = EconomySystem.Instance.RefundDemolition(defaultRoad.costPerTile);
+            float refund = EconomySystem.Instance.RefundDemolition(refundCost);
             Debug.Log($"Road demolition refund: {refund} at ({gridX}, {gridY})");
         }
 
