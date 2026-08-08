@@ -7,6 +7,7 @@ public class VehicleController : MonoBehaviour
 
     private List<Vehicle> vehicles = new List<Vehicle>();
     private float safeDistance = 2f;
+    private float rerouteTrafficThreshold = 0.5f;
 
     private void Awake()
     {
@@ -67,6 +68,12 @@ public class VehicleController : MonoBehaviour
             Vehicle vehicle = vehicles[i];
             if (!vehicle.isMoving) continue;
 
+            // إعادة تخطيط المسار إذا لزم الأمر
+            if (ShouldReroute(vehicle))
+            {
+                RequestReroute(vehicle);
+            }
+
             float currentSpeed = GetSafeSpeed(vehicle);
 
             Vector3 targetWaypoint = vehicle.GetNextWaypoint();
@@ -98,6 +105,36 @@ public class VehicleController : MonoBehaviour
                 }
             }
         }
+    }
+
+    private bool ShouldReroute(Vehicle vehicle)
+    {
+        if (SimulationClock.Instance == null) return false;
+
+        int currentTick = SimulationClock.Instance.CurrentTick;
+        if (currentTick - vehicle.lastRerouteTick < vehicle.rerouteCooldownTicks)
+            return false;
+
+        Vector2Int currentTile = GetGridPosition(vehicle.position);
+        float trafficLevel = TrafficSystem.Instance != null
+            ? TrafficSystem.Instance.GetTrafficLevel(currentTile)
+            : 0f;
+
+        return trafficLevel >= rerouteTrafficThreshold;
+    }
+
+    private void RequestReroute(Vehicle vehicle)
+    {
+        if (vehicle.currentPath == null || vehicle.pathIndex >= vehicle.currentPath.Count)
+            return;
+
+        Vector2Int targetGrid = vehicle.currentPath[vehicle.currentPath.Count - 1];
+        Vector3 targetPosition = GridSystem.Instance.GridToWorld(targetGrid.x, targetGrid.y);
+
+        RequestPath(vehicle, targetPosition);
+
+        if (SimulationClock.Instance != null)
+            vehicle.lastRerouteTick = SimulationClock.Instance.CurrentTick;
     }
 
     private float GetSafeSpeed(Vehicle vehicle)
