@@ -96,7 +96,7 @@ public class PathfindingSystem : MonoBehaviour
 
     private float Heuristic(RoadNode a, RoadNode b)
     {
-        return Vector2Int.Distance(a.position, b.position);
+        return Vector2Int.Distance(a.position, b.position) / 40f;
     }
 
     private RoadNode GetLowestFCost(List<RoadNode> openSet, Dictionary<RoadNode, float> fCost)
