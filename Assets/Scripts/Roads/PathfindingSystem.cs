@@ -75,7 +75,8 @@ public class PathfindingSystem : MonoBehaviour
                 if (closedSet.Contains(neighbor))
                     continue;
 
-                float tentativeGCost = gCost[current] + edge.cost;
+                float edgeCost = edge.GetEffectiveCost();
+                float tentativeGCost = gCost[current] + edgeCost;
 
                 if (!gCost.ContainsKey(neighbor) || tentativeGCost < gCost[neighbor])
                 {
