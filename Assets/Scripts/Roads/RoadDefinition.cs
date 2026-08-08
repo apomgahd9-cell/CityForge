@@ -9,4 +9,9 @@ public class RoadDefinition
     public float upkeepPerTile;
     public int speed;
     public int lanes;
+
+    public int capacity
+    {
+        get { return lanes * 6; }
+    }
 }
