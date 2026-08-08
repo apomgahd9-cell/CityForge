@@ -1,0 +1,28 @@
+{
+  "roads": [
+    {
+      "id": "basic_road",
+      "displayName": "Basic Road",
+      "costPerTile": 10,
+      "upkeepPerTile": 1,
+      "speed": 30,
+      "lanes": 1
+    },
+    {
+      "id": "main_road",
+      "displayName": "Main Road",
+      "costPerTile": 25,
+      "upkeepPerTile": 3,
+      "speed": 50,
+      "lanes": 2
+    },
+    {
+      "id": "highway",
+      "displayName": "Highway",
+      "costPerTile": 50,
+      "upkeepPerTile": 6,
+      "speed": 80,
+      "lanes": 4
+    }
+  ]
+}
