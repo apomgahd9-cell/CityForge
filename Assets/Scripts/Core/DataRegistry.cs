@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -7,6 +6,7 @@ public class DataRegistry : MonoBehaviour
     public static DataRegistry Instance { get; private set; }
 
     public Dictionary<string, BuildingDefinition> Buildings { get; private set; } = new Dictionary<string, BuildingDefinition>();
+    public Dictionary<string, RoadDefinition> Roads { get; private set; } = new Dictionary<string, RoadDefinition>();
 
     private void Awake()
     {
@@ -24,6 +24,7 @@ public class DataRegistry : MonoBehaviour
     private void Initialize()
     {
         LoadBuildings();
+        LoadRoads();
         ValidateAllData();
         Debug.Log("DataRegistry initialized.");
     }
@@ -39,7 +40,22 @@ public class DataRegistry : MonoBehaviour
                 if (!string.IsNullOrEmpty(building.id))
                 {
                     Buildings[building.id] = building;
-                    Debug.Log($"Building loaded: {building.id} - {building.displayName}");
+                }
+            }
+        }
+    }
+
+    private void LoadRoads()
+    {
+        RoadListWrapper wrapper = JsonLoader.Load<RoadListWrapper>("Data/Definitions/roads");
+
+        if (wrapper != null && wrapper.roads != null)
+        {
+            foreach (RoadDefinition road in wrapper.roads)
+            {
+                if (!string.IsNullOrEmpty(road.id))
+                {
+                    Roads[road.id] = road;
                 }
             }
         }
@@ -61,44 +77,15 @@ public class DataRegistry : MonoBehaviour
         return building;
     }
 
-    public List<BuildingDefinition> GetBuildingsByTag(string tag)
+    public RoadDefinition GetRoad(string id)
     {
-        List<BuildingDefinition> result = new List<BuildingDefinition>();
-        foreach (var building in Buildings.Values)
-        {
-            if (building.zoneTags != null && building.zoneTags.Contains(tag))
-                result.Add(building);
-        }
-        return result;
+        Roads.TryGetValue(id, out RoadDefinition road);
+        return road;
     }
+}
 
-    public List<BuildingDefinition> GetBuildingsByTagAndLevel(string tag, int level)
-    {
-        List<BuildingDefinition> result = new List<BuildingDefinition>();
-        foreach (var building in Buildings.Values)
-        {
-            if (building.zoneTags != null && building.zoneTags.Contains(tag) && building.level == level)
-                result.Add(building);
-        }
-        return result;
-    }
-
-    public List<BuildingDefinition> GetBuildingsByTagAndCategory(string tag, string category)
-    {
-        List<BuildingDefinition> result = new List<BuildingDefinition>();
-        foreach (var building in Buildings.Values)
-        {
-            if (building.zoneTags != null && building.zoneTags.Contains(tag) &&
-                string.Equals(building.category, category, StringComparison.OrdinalIgnoreCase))
-                result.Add(building);
-        }
-        return result;
-    }
-
-    public BuildingDefinition GetRandomBuildingByTagAndLevel(string tag, int level)
-    {
-        var matches = GetBuildingsByTagAndLevel(tag, level);
-        if (matches.Count == 0) return null;
-        return matches[UnityEngine.Random.Range(0, matches.Count)];
-    }
+[System.Serializable]
+public class RoadListWrapper
+{
+    public List<RoadDefinition> roads;
 }
