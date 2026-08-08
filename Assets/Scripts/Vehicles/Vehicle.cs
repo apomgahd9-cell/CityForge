@@ -9,6 +9,8 @@ public class Vehicle
     public List<Vector2Int> currentPath;
     public int pathIndex;
     public bool isMoving;
+    public int lastRerouteTick;
+    public int rerouteCooldownTicks = 60;
 
     public Vehicle(string id, Vector3 startPosition, float speed)
     {
@@ -18,6 +20,7 @@ public class Vehicle
         this.currentPath = new List<Vector2Int>();
         this.pathIndex = 0;
         this.isMoving = false;
+        this.lastRerouteTick = -rerouteCooldownTicks;
     }
 
     public void SetPath(List<Vector2Int> path)
