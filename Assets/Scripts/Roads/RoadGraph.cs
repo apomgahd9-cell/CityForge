@@ -78,7 +78,6 @@ public class RoadGraph : MonoBehaviour
 
     private float CalculateEdgeCost(Vector2Int from, Vector2Int to)
     {
-        // TODO: استرجاع RoadDefinition الفعلي من DataRegistry لاحقاً
         float baseSpeed = 40f;
         float distance = Vector2Int.Distance(from, to);
         return distance / baseSpeed;
@@ -110,4 +109,13 @@ public class RoadEdge
 {
     public RoadNode target;
     public float cost;
+
+    public float GetEffectiveCost()
+    {
+        float trafficCost = TrafficSystem.Instance != null
+            ? TrafficSystem.Instance.GetTrafficCost(target.position)
+            : 0f;
+
+        return cost + trafficCost;
+    }
 }
