@@ -6,6 +6,7 @@ public class TrafficSystem : MonoBehaviour
     public static TrafficSystem Instance { get; private set; }
 
     private Dictionary<Vector2Int, int> vehicleCount = new Dictionary<Vector2Int, int>();
+    private int defaultCapacity = 6;
 
     private void Awake()
     {
@@ -52,8 +53,10 @@ public class TrafficSystem : MonoBehaviour
         int count = GetVehicleCount(tile);
         if (count == 0) return 0f;
 
-        int maxVehiclesPerTile = 5;
-        return Mathf.Clamp01((float)count / maxVehiclesPerTile);
+        int capacity = GetRoadCapacity(tile);
+        if (capacity <= 0) return 1f;
+
+        return Mathf.Clamp01((float)count / capacity);
     }
 
     public float GetTrafficCost(Vector2Int tile)
@@ -61,5 +64,17 @@ public class TrafficSystem : MonoBehaviour
         float trafficLevel = GetTrafficLevel(tile);
         float baseTrafficCost = 2f;
         return trafficLevel * baseTrafficCost;
+    }
+
+    private int GetRoadCapacity(Vector2Int tile)
+    {
+        if (RoadNetwork.Instance != null)
+        {
+            RoadDefinition def = RoadNetwork.Instance.GetRoadDefinition(tile.x, tile.y);
+            if (def != null)
+                return def.capacity;
+        }
+
+        return defaultCapacity;
     }
 }
