@@ -157,6 +157,18 @@ public class RoadNetwork : MonoBehaviour, ISaveable
 
     public int RoadCount => roadTiles.Count;
 
+    public float GetTotalUpkeep()
+    {
+        float total = 0f;
+        foreach (var kvp in roadTiles)
+        {
+            RoadDefinition def = GetRoadDefinition(kvp.Key.x, kvp.Key.y);
+            if (def != null)
+                total += def.upkeepPerTile;
+        }
+        return total;
+    }
+
     public void Save(SaveData data)
     {
         if (data.roads == null)
