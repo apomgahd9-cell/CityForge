@@ -125,12 +125,9 @@ public class EconomySystem : MonoBehaviour, ISaveable
         else
             Debug.LogWarning("ServiceSystem not available for expense calculation.");
 
-        if (RoadNetwork.Instance != null &&
-            economyData.expenses != null &&
-            economyData.expenses.roadMaintenance != null)
+        if (RoadNetwork.Instance != null)
         {
-            total += RoadNetwork.Instance.RoadCount *
-                     economyData.expenses.roadMaintenance.costPerTile;
+            total += RoadNetwork.Instance.GetTotalUpkeep();
         }
 
         if (outstandingLoan > 0)
