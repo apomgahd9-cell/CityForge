@@ -78,7 +78,6 @@ public class ServiceFee
 public class Expenses
 {
     public Dictionary<string, ServiceCost> serviceMaintenance;
-    public RoadMaintenance roadMaintenance;
 }
 
 [Serializable]
@@ -93,12 +92,6 @@ public class Scaling
 {
     public string metric;
     public float weight;
-}
-
-[Serializable]
-public class RoadMaintenance
-{
-    public float costPerTile;
 }
 
 [Serializable]
