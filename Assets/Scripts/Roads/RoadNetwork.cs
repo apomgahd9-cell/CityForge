@@ -55,6 +55,13 @@ public class RoadNetwork : MonoBehaviour, ISaveable
         }
 
         string type = roadType ?? defaultRoadType;
+
+        if (DataRegistry.Instance != null && DataRegistry.Instance.GetRoad(type) == null)
+        {
+            Debug.LogWarning($"Road type '{type}' not found in DataRegistry. Using default.");
+            type = defaultRoadType;
+        }
+
         roadTiles[pos] = type;
         GridSystem.Instance.SetTile(gridX, gridY, new TileData
         {
