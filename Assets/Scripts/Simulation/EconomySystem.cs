@@ -141,11 +141,11 @@ public class EconomySystem : MonoBehaviour, ISaveable
         string[] parts = taxSource.Split('.');
         if (parts.Length == 2 && parts[0] == "taxPolicy")
         {
-            if (economyData.taxPolicy.TryGetValue(parts[1], out TaxPolicyItem policy))
-                return policy.defaultRate;
+            string taxId = "tax_" + parts[1];
+            if (PolicySystem.Instance != null)
+                return PolicySystem.Instance.GetTaxRate(taxId);
         }
 
-        Debug.LogWarning($"Tax policy not found for: {taxSource}. Returning 0.");
         return 0f;
     }
 
