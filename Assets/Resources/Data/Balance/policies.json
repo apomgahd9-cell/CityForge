@@ -1,0 +1,31 @@
+{
+  "taxPolicies": {
+    "residential": {
+      "id": "tax_residential",
+      "displayName": "Residential Tax",
+      "defaultRate": 7,
+      "minRate": 0,
+      "maxRate": 20,
+      "rateStep": 0.5,
+      "currentRate": 7
+    },
+    "commercial": {
+      "id": "tax_commercial",
+      "displayName": "Commercial Tax",
+      "defaultRate": 7,
+      "minRate": 0,
+      "maxRate": 20,
+      "rateStep": 0.5,
+      "currentRate": 7
+    },
+    "industrial": {
+      "id": "tax_industrial",
+      "displayName": "Industrial Tax",
+      "defaultRate": 7,
+      "minRate": 0,
+      "maxRate": 20,
+      "rateStep": 0.5,
+      "currentRate": 7
+    }
+  }
+}
