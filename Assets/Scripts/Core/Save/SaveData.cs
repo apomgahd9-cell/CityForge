@@ -9,6 +9,9 @@ public class SaveData
     public long saveTimestamp;
     public float currentFunds;
     public float outstandingLoan;
+    public float taxResidential;
+    public float taxCommercial;
+    public float taxIndustrial;
     public List<BuildingSaveData> buildings = new List<BuildingSaveData>();
     public List<RoadSaveData> roads = new List<RoadSaveData>();
     public Dictionary<string, int> activeServices = new Dictionary<string, int>();
