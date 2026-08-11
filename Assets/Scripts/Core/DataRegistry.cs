@@ -82,6 +82,39 @@ public class DataRegistry : MonoBehaviour
         Roads.TryGetValue(id, out RoadDefinition road);
         return road;
     }
+
+    public List<BuildingDefinition> GetBuildingsByTagAndCategory(string tag, string category)
+    {
+        List<BuildingDefinition> matches = new List<BuildingDefinition>();
+
+        foreach (BuildingDefinition building in Buildings.Values)
+        {
+            if (building == null) continue;
+            if (building.category != category) continue;
+            if (building.zoneTags == null || !building.zoneTags.Contains(tag)) continue;
+
+            matches.Add(building);
+        }
+
+        return matches;
+    }
+
+    public BuildingDefinition GetRandomBuildingByTagAndLevel(string tag, int level)
+    {
+        List<BuildingDefinition> matches = new List<BuildingDefinition>();
+
+        foreach (BuildingDefinition building in Buildings.Values)
+        {
+            if (building == null) continue;
+            if (building.level != level) continue;
+            if (building.zoneTags == null || !building.zoneTags.Contains(tag)) continue;
+
+            matches.Add(building);
+        }
+
+        if (matches.Count == 0) return null;
+        return matches[Random.Range(0, matches.Count)];
+    }
 }
 
 [System.Serializable]
