@@ -69,15 +69,139 @@ public class BuildingSpawner : MonoBehaviour, ISaveable
         return activeBuildings.AsReadOnly();
     }
 
-    public void RemoveBuilding(BuildingInstance building)
+    public void RemoveBuilding(BuildingInstance building, bool freeOccupancy = false)
     {
         if (!activeBuildings.Contains(building)) return;
+
+        if (freeOccupancy && OccupancyMap.Instance != null && building.OccupantId > 0)
+        {
+            OccupancyMap.Instance.FreeAreaByOccupantId(building.OccupantId);
+        }
 
         activeBuildings.Remove(building);
         if (MetricsSystem.Instance != null)
             MetricsSystem.Instance.RemoveBuilding(building);
 
         Debug.Log($"Building removed: {building.Definition.displayName}");
+    }
+
+    public bool ReplaceBuilding(BuildingInstance building, string newDefinitionId)
+    {
+        if (building == null)
+        {
+            Debug.LogWarning("ReplaceBuilding: building is null.");
+            return false;
+        }
+
+        if (DataRegistry.Instance == null)
+        {
+            Debug.LogWarning("DataRegistry not available.");
+            return false;
+        }
+
+        BuildingDefinition newDef = DataRegistry.Instance.GetBuilding(newDefinitionId);
+        if (newDef == null)
+        {
+            Debug.LogWarning($"ReplaceBuilding: definition not found: {newDefinitionId}");
+            return false;
+        }
+
+        int oldWidth = building.Definition.size != null ? building.Definition.size.width : 1;
+        int oldDepth = building.Definition.size != null ? building.Definition.size.depth : 1;
+        int newWidth = newDef.size != null ? newDef.size.width : 1;
+        int newDepth = newDef.size != null ? newDef.size.depth : 1;
+
+        string oldName = building.Definition.displayName;
+
+        if (OccupancyMap.Instance == null || GridSystem.Instance == null)
+        {
+            building.ReplaceDefinition(newDef);
+            MetricsSystem.Instance?.RecalculateAll();
+            Debug.Log($"Building replaced: {oldName} → {newDef.displayName}");
+            return true;
+        }
+
+        if (!GridSystem.Instance.WorldToGrid(building.Position, out int gridX, out int gridY))
+        {
+            Debug.LogWarning("ReplaceBuilding: cannot convert position to grid.");
+            return false;
+        }
+
+        // حفظ الحالة القديمة للـ Rollback
+        int oldOccupantId = building.OccupantId;
+        TileType oldTileType = GetTileTypeForDefinition(building.Definition);
+
+        // تحرير المساحة القديمة
+        if (oldOccupantId > 0)
+            OccupancyMap.Instance.FreeAreaByOccupantId(oldOccupantId);
+
+        // مسح البلاطات القديمة
+        for (int x = gridX; x < gridX + oldWidth; x++)
+        {
+            for (int y = gridY; y < gridY + oldDepth; y++)
+            {
+                GridSystem.Instance.SetTile(x, y, new TileData { gridX = x, gridY = y, type = TileType.Empty });
+            }
+        }
+
+        // فحص المساحة الجديدة
+        if (!OccupancyMap.Instance.IsAreaFree(gridX, gridY, newWidth, newDepth))
+        {
+            Debug.LogWarning($"ReplaceBuilding: new area not free. Rolling back.");
+            RollbackOccupancy(gridX, gridY, oldWidth, oldDepth, oldOccupantId, oldTileType, building);
+            return false;
+        }
+
+        // حجز المساحة الجديدة
+        int newOccupantId = OccupancyMap.Instance.OccupyArea(gridX, gridY, newWidth, newDepth);
+        if (newOccupantId < 0)
+        {
+            Debug.LogError("ReplaceBuilding: OccupyArea failed. Rolling back.");
+            RollbackOccupancy(gridX, gridY, oldWidth, oldDepth, oldOccupantId, oldTileType, building);
+            return false;
+        }
+
+        // تحديث التعريف
+        building.ReplaceDefinition(newDef);
+        building.SetOccupantId(newOccupantId);
+
+        // تحديث البلاطات الجديدة
+        TileType newTileType = GetTileTypeForDefinition(newDef);
+        for (int x = gridX; x < gridX + newWidth; x++)
+        {
+            for (int y = gridY; y < gridY + newDepth; y++)
+            {
+                GridSystem.Instance.SetTile(x, y, new TileData { gridX = x, gridY = y, type = newTileType });
+            }
+        }
+
+        MetricsSystem.Instance?.RecalculateAll();
+        Debug.Log($"Building replaced: {oldName} → {newDef.displayName} ({oldWidth}x{oldDepth} → {newWidth}x{newDepth})");
+        return true;
+    }
+
+    private void RollbackOccupancy(int gridX, int gridY, int width, int depth, int occupantId, TileType tileType, BuildingInstance building)
+    {
+        if (OccupancyMap.Instance != null)
+        {
+            if (occupantId > 0)
+            {
+                OccupancyMap.Instance.FreeAreaByOccupantId(occupantId);
+            }
+            int rollbackId = OccupancyMap.Instance.OccupyArea(gridX, gridY, width, depth);
+            building.SetOccupantId(rollbackId);
+        }
+
+        if (GridSystem.Instance != null)
+        {
+            for (int x = gridX; x < gridX + width; x++)
+            {
+                for (int y = gridY; y < gridY + depth; y++)
+                {
+                    GridSystem.Instance.SetTile(x, y, new TileData { gridX = x, gridY = y, type = tileType });
+                }
+            }
+        }
     }
 
     public void Save(SaveData data)
@@ -99,7 +223,7 @@ public class BuildingSpawner : MonoBehaviour, ISaveable
     public void Load(SaveData data)
     {
         while (activeBuildings.Count > 0)
-            RemoveBuilding(activeBuildings[0]);
+            RemoveBuilding(activeBuildings[0], freeOccupancy: true);
 
         foreach (BuildingSaveData saved in data.buildings)
         {
