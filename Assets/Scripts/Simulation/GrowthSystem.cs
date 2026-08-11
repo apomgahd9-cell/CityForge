@@ -286,17 +286,25 @@ public class GrowthSystem : MonoBehaviour
     {
         if (DataRegistry.Instance == null) return null;
 
-        string tag = zoneType switch
+        BuildingDefinition def = null;
+
+        if (BuildingCategoryMapper.Instance != null)
         {
-            ZoneType.Residential => "residential",
-            ZoneType.Commercial  => "commercial",
-            ZoneType.Industrial  => "industrial",
-            _ => null
-        };
+            def = BuildingCategoryMapper.Instance.GetBuildingForZone(zoneType, level);
+        }
 
-        if (string.IsNullOrEmpty(tag)) return null;
+        if (def == null)
+        {
+            string tag = zoneType switch
+            {
+                ZoneType.Residential => "residential",
+                ZoneType.Commercial  => "commercial",
+                ZoneType.Industrial  => "industrial",
+                _ => null
+            };
+            def = DataRegistry.Instance.GetRandomBuildingByTagAndLevel(tag, level);
+        }
 
-        BuildingDefinition def = DataRegistry.Instance.GetRandomBuildingByTagAndLevel(tag, level);
         return def?.id;
     }
 
