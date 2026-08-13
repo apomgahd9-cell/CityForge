@@ -25,7 +25,7 @@ public class ServiceCoverageSystem : MonoBehaviour
 
         if (servicesData == null)
         {
-            Debug.LogWarning("Failed to load services.json. Using fallback service distances.");
+            Debug.LogWarning("Failed to load services.json. Coverage will be empty.");
         }
     }
 
@@ -63,11 +63,17 @@ public class ServiceCoverageSystem : MonoBehaviour
             string serviceId = kvp.Key;
             List<Vector2Int> origins = kvp.Value;
 
+            int maxDistance = GetMaxDistance(serviceId);
+            if (maxDistance <= 0)
+            {
+                Debug.LogWarning($"Service '{serviceId}' has invalid radius. Skipping coverage.");
+                continue;
+            }
+
             HashSet<Vector2Int> coveredTiles = new HashSet<Vector2Int>();
 
             foreach (Vector2Int origin in origins)
             {
-                int maxDistance = GetMaxDistance(serviceId);
                 HashSet<Vector2Int> fromOrigin = BFS(origin, maxDistance);
                 coveredTiles.UnionWith(fromOrigin);
             }
@@ -162,7 +168,8 @@ public class ServiceCoverageSystem : MonoBehaviour
             return def.radius;
         }
 
-        return 10;
+        Debug.LogWarning($"Service definition not found: {serviceId}. Skipping coverage.");
+        return -1;
     }
 
     public HashSet<Vector2Int> GetCoverage(string serviceId)
