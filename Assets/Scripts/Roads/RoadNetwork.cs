@@ -54,6 +54,12 @@ public class RoadNetwork : MonoBehaviour, ISaveable
             return false;
         }
 
+        if (OccupancyMap.Instance != null && OccupancyMap.Instance.IsOccupied(gridX, gridY))
+        {
+            Debug.LogWarning($"Tile ({gridX}, {gridY}) is occupied by a building.");
+            return false;
+        }
+
         string type = roadType ?? defaultRoadType;
 
         if (DataRegistry.Instance != null && DataRegistry.Instance.GetRoad(type) == null)
@@ -195,7 +201,21 @@ public class RoadNetwork : MonoBehaviour, ISaveable
 
         foreach (RoadSaveData saved in data.roads)
         {
+            if (GridSystem.Instance != null &&
+                !GridSystem.Instance.IsValidGridPosition(saved.gridX, saved.gridY))
+            {
+                Debug.LogWarning($"Skipping road at invalid position: ({saved.gridX}, {saved.gridY})");
+                continue;
+            }
+
             string type = string.IsNullOrEmpty(saved.type) ? defaultRoadType : saved.type;
+
+            if (DataRegistry.Instance != null && DataRegistry.Instance.GetRoad(type) == null)
+            {
+                Debug.LogWarning($"Road type '{type}' not found. Using default.");
+                type = defaultRoadType;
+            }
+
             Vector2Int pos = new Vector2Int(saved.gridX, saved.gridY);
             roadTiles[pos] = type;
 
