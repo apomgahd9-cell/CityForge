@@ -74,8 +74,15 @@ public class ServiceCoverageSystem : MonoBehaviour
 
             foreach (Vector2Int origin in origins)
             {
-                HashSet<Vector2Int> fromOrigin = BFS(origin, maxDistance);
-                coveredTiles.UnionWith(fromOrigin);
+                // تحويل موقع مبنى الخدمة إلى طرق مجاورة كنقاط بداية
+                List<Vector2Int> roadOrigins = GetAdjacentRoads(origin);
+                if (roadOrigins.Count == 0) continue;
+
+                foreach (Vector2Int roadOrigin in roadOrigins)
+                {
+                    HashSet<Vector2Int> fromOrigin = BFS(roadOrigin, maxDistance);
+                    coveredTiles.UnionWith(fromOrigin);
+                }
             }
 
             coverage[serviceId] = coveredTiles;
@@ -84,6 +91,32 @@ public class ServiceCoverageSystem : MonoBehaviour
         ServiceSystem.Instance?.RecalculateAllEffects();
 
         Debug.Log($"ServiceCoverage built for {coverage.Count} service types.");
+    }
+
+    private List<Vector2Int> GetAdjacentRoads(Vector2Int serviceOrigin)
+    {
+        List<Vector2Int> roads = new List<Vector2Int>();
+
+        if (RoadNetwork.Instance == null) return roads;
+
+        Vector2Int[] directions = new Vector2Int[]
+        {
+            new Vector2Int(0, 1),
+            new Vector2Int(0, -1),
+            new Vector2Int(1, 0),
+            new Vector2Int(-1, 0)
+        };
+
+        foreach (Vector2Int dir in directions)
+        {
+            int nx = serviceOrigin.x + dir.x;
+            int ny = serviceOrigin.y + dir.y;
+
+            if (RoadNetwork.Instance.IsRoad(nx, ny))
+                roads.Add(new Vector2Int(nx, ny));
+        }
+
+        return roads;
     }
 
     private HashSet<Vector2Int> BFS(Vector2Int start, int maxDistance)
