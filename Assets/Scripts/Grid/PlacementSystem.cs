@@ -41,6 +41,12 @@ public class PlacementSystem : MonoBehaviour
             return false;
         }
 
+        if (PlacementValidator.Instance == null)
+        {
+            Debug.LogError("PlacementValidator not found.");
+            return false;
+        }
+
         BuildingDefinition definition = DataRegistry.Instance.GetBuilding(buildingId);
         if (definition == null)
         {
@@ -52,39 +58,51 @@ public class PlacementSystem : MonoBehaviour
             ? definition.displayName
             : buildingId;
 
-        if (!GridSystem.Instance.WorldToGrid(worldPosition, out int gridX, out int gridY))
+        if (!PlacementValidator.Instance.Validate(
+            definition,
+            worldPosition,
+            out int gridX,
+            out int gridY,
+            out string validationError))
         {
-            Debug.LogWarning("Position is outside grid bounds.");
+            Debug.LogWarning($"Cannot place {buildingName}: {validationError}");
             return false;
         }
 
         int areaWidth = definition.size != null ? definition.size.width : 1;
         int areaDepth = definition.size != null ? definition.size.depth : 1;
 
-        if (!OccupancyMap.Instance.IsAreaFree(gridX, gridY, areaWidth, areaDepth))
-        {
-            Debug.LogWarning($"Area ({gridX},{gridY}) {areaWidth}x{areaDepth} is not free.");
-            return false;
-        }
+        float buildCost = definition.construction != null
+            ? definition.construction.cost
+            : 0f;
 
-        float buildCost = definition.construction != null ? definition.construction.cost : 0f;
-        if (EconomySystem.Instance != null && !EconomySystem.Instance.CanAfford(buildCost))
+        if (EconomySystem.Instance != null &&
+            !EconomySystem.Instance.CanAfford(buildCost))
         {
             Debug.LogWarning($"Not enough funds to build {buildingName}.");
             return false;
         }
 
-        BuildingInstance instance = BuildingSpawner.Instance.SpawnBuilding(buildingId, worldPosition);
+        BuildingInstance instance = BuildingSpawner.Instance.SpawnBuilding(
+            buildingId,
+            worldPosition);
+
         if (instance == null)
         {
             Debug.LogError($"Failed to spawn building: {buildingId}");
             return false;
         }
 
-        int occupantId = OccupancyMap.Instance.OccupyArea(gridX, gridY, areaWidth, areaDepth);
+        int occupantId = OccupancyMap.Instance.OccupyArea(
+            gridX,
+            gridY,
+            areaWidth,
+            areaDepth);
+
         if (occupantId < 0)
         {
             Debug.LogError("Failed to occupy area.");
+
             BuildingSpawner.Instance.RemoveBuilding(instance);
             return false;
         }
@@ -111,7 +129,10 @@ public class PlacementSystem : MonoBehaviour
             }
         }
 
-        Debug.Log($"Placed {buildingName} at ({gridX}, {gridY}), size: {areaWidth}x{areaDepth}, cost: {buildCost}");
+        Debug.Log(
+            $"Placed {buildingName} at ({gridX}, {gridY}), " +
+            $"size: {areaWidth}x{areaDepth}, cost: {buildCost}");
+
         return true;
     }
 
