@@ -7,7 +7,7 @@ public class BuildingSpawner : MonoBehaviour, ISaveable
 
     private List<BuildingInstance> activeBuildings = new List<BuildingInstance>();
 
-    public int LoadPriority => 0;
+    public int LoadPriority => 20;
 
     private void Awake()
     {
@@ -127,15 +127,12 @@ public class BuildingSpawner : MonoBehaviour, ISaveable
             return false;
         }
 
-        // حفظ الحالة القديمة للـ Rollback
         int oldOccupantId = building.OccupantId;
         TileType oldTileType = GetTileTypeForDefinition(building.Definition);
 
-        // تحرير المساحة القديمة
         if (oldOccupantId > 0)
             OccupancyMap.Instance.FreeAreaByOccupantId(oldOccupantId);
 
-        // مسح البلاطات القديمة
         for (int x = gridX; x < gridX + oldWidth; x++)
         {
             for (int y = gridY; y < gridY + oldDepth; y++)
@@ -144,7 +141,6 @@ public class BuildingSpawner : MonoBehaviour, ISaveable
             }
         }
 
-        // فحص المساحة الجديدة
         if (!OccupancyMap.Instance.IsAreaFree(gridX, gridY, newWidth, newDepth))
         {
             Debug.LogWarning($"ReplaceBuilding: new area not free. Rolling back.");
@@ -152,7 +148,6 @@ public class BuildingSpawner : MonoBehaviour, ISaveable
             return false;
         }
 
-        // حجز المساحة الجديدة
         int newOccupantId = OccupancyMap.Instance.OccupyArea(gridX, gridY, newWidth, newDepth);
         if (newOccupantId < 0)
         {
@@ -161,11 +156,9 @@ public class BuildingSpawner : MonoBehaviour, ISaveable
             return false;
         }
 
-        // تحديث التعريف
         building.ReplaceDefinition(newDef);
         building.SetOccupantId(newOccupantId);
 
-        // تحديث البلاطات الجديدة
         TileType newTileType = GetTileTypeForDefinition(newDef);
         for (int x = gridX; x < gridX + newWidth; x++)
         {
