@@ -88,11 +88,11 @@ public class GrowthSystem : MonoBehaviour
 
         var zone = buildableZones[Random.Range(0, buildableZones.Count)];
 
-        var profile = FindProfile(zoneType);
+        GrowthProfile profile = FindProfile(zoneType);
         if (profile == null) return false;
 
         int growthLevel = zone.density;
-        var currentStage = profile.stages.Find(s => s.level == growthLevel);
+        GrowthStage currentStage = profile.stages.Find(s => s.level == growthLevel);
         if (currentStage == null) return false;
 
         string buildingId = GetBuildingIdForZone(zoneType, growthLevel);
@@ -160,17 +160,17 @@ public class GrowthSystem : MonoBehaviour
 
     private void TryUpgradeBuilding(BuildingInstance building)
     {
-        var profile = FindProfileForBuilding(building);
+        GrowthProfile profile = FindProfileForBuilding(building);
         if (profile == null) return;
 
-        var currentStage = profile.stages.Find(s => s.level == building.CurrentLevel);
+        GrowthStage currentStage = profile.stages.Find(s => s.level == building.CurrentLevel);
         if (currentStage == null) return;
 
         if (string.IsNullOrEmpty(currentStage.upgradeTarget) || currentStage.upgradeTarget != "next")
             return;
 
         int nextLevel = building.CurrentLevel + 1;
-        var nextStage = profile.stages.Find(s => s.level == nextLevel);
+        GrowthStage nextStage = profile.stages.Find(s => s.level == nextLevel);
         if (nextStage == null) return;
 
         if (!CheckRules(nextStage.rules)) return;
@@ -239,10 +239,10 @@ public class GrowthSystem : MonoBehaviour
 
     private bool TryDowngradeBuilding(BuildingInstance building)
     {
-        var profile = FindProfileForBuilding(building);
+        GrowthProfile profile = FindProfileForBuilding(building);
         if (profile == null) return false;
 
-        var currentStage = profile.stages.Find(s => s.level == building.CurrentLevel);
+        GrowthStage currentStage = profile.stages.Find(s => s.level == building.CurrentLevel);
         if (currentStage == null) return false;
 
         if (currentStage.declineRules == null || currentStage.declineRules.Count == 0)
@@ -321,7 +321,7 @@ public class GrowthSystem : MonoBehaviour
         return null;
     }
 
-    private GrowthStage FindProfile(ZoneType zoneType)
+    private GrowthProfile FindProfile(ZoneType zoneType)
     {
         string tag = zoneType switch
         {
@@ -339,7 +339,7 @@ public class GrowthSystem : MonoBehaviour
         return null;
     }
 
-    private GrowthStage FindProfileForBuilding(BuildingInstance building)
+    private GrowthProfile FindProfileForBuilding(BuildingInstance building)
     {
         if (building.Definition.zoneTags == null) return null;
 
@@ -359,8 +359,11 @@ public class GrowthSystem : MonoBehaviour
     private bool CheckRules(List<GrowthRule> rules)
     {
         if (rules == null) return true;
+
         foreach (var rule in rules)
         {
+            if (rule == null) continue;
+
             switch (rule.type)
             {
                 case "service_available":
@@ -369,42 +372,74 @@ public class GrowthSystem : MonoBehaviour
                         Debug.LogWarning("Growth rule 'service_available' is missing serviceId.");
                         return false;
                     }
+
                     if (ServiceSystem.Instance == null)
                     {
                         Debug.LogWarning("ServiceSystem is not available for growth check.");
                         return false;
                     }
+
                     if (!ServiceSystem.Instance.HasService(rule.serviceId))
                         return false;
+
                     break;
 
                 case "metric_min":
+                    if (MetricsSystem.Instance == null)
+                    {
+                        Debug.LogWarning("MetricsSystem is not available for growth check.");
+                        return false;
+                    }
+
                     if (MetricsSystem.Instance.GetMetric(rule.metric) < rule.value)
                         return false;
+
                     break;
 
                 case "metric_max":
+                    if (MetricsSystem.Instance == null)
+                    {
+                        Debug.LogWarning("MetricsSystem is not available for growth check.");
+                        return false;
+                    }
+
                     if (MetricsSystem.Instance.GetMetric(rule.metric) > rule.value)
                         return false;
+
                     break;
             }
         }
+
         return true;
     }
 
     private float CalculateChance(string modelId)
     {
+        if (growthModelData == null || growthModelData.models == null)
+            return 0f;
+
         if (!growthModelData.models.TryGetValue(modelId, out var model))
             return 0f;
 
+        if (model == null)
+            return 0f;
+
         float chance = model.baseChance;
-        foreach (var mod in model.modifiers)
+
+        if (MetricsSystem.Instance != null && model.modifiers != null)
         {
-            float metricVal = MetricsSystem.Instance.GetMetric(mod.metric);
-            float contribution = metricVal * mod.weight;
-            contribution = Mathf.Clamp(contribution, mod.contributionRange[0], mod.contributionRange[1]);
-            chance += contribution;
+            foreach (var mod in model.modifiers)
+            {
+                if (mod == null) continue;
+                if (mod.contributionRange == null || mod.contributionRange.Length < 2) continue;
+
+                float metricVal = MetricsSystem.Instance.GetMetric(mod.metric);
+                float contribution = metricVal * mod.weight;
+                contribution = Mathf.Clamp(contribution, mod.contributionRange[0], mod.contributionRange[1]);
+                chance += contribution;
+            }
         }
+
         return Mathf.Clamp(chance, model.minChance, model.maxChance);
     }
 
