@@ -89,20 +89,17 @@ public class ServiceSystem : MonoBehaviour, ISaveable
         return activeServices.TryGetValue(serviceId, out int count) && count > 0;
     }
 
-    public float GetCoverage(string metric)
-    {
-        return MetricsSystem.Instance != null ? MetricsSystem.Instance.GetMetric(metric) : 0f;
-    }
-
     public float GetTotalUpkeep()
     {
         float total = 0f;
+
         foreach (var kvp in activeServices)
         {
             if (kvp.Value <= 0) continue;
             if (serviceLookup.TryGetValue(kvp.Key, out ServiceDefinition def))
                 total += def.upkeep * kvp.Value;
         }
+
         return total;
     }
 
@@ -113,7 +110,8 @@ public class ServiceSystem : MonoBehaviour, ISaveable
 
     private void ApplyServiceEffects()
     {
-        if (servicesData == null || MetricsSystem.Instance == null) return;
+        if (servicesData == null || MetricsSystem.Instance == null)
+            return;
 
         foreach (ServiceDefinition def in servicesData.services.Values)
         {
@@ -122,22 +120,28 @@ public class ServiceSystem : MonoBehaviour, ISaveable
                 MetricsSystem.Instance.SetMetric(metric, 0);
         }
 
-        if (ServiceCoverageSystem.Instance != null && GridSystem.Instance != null)
+        if (ServiceCoverageSystem.Instance == null || GridSystem.Instance == null)
+            return;
+
+        int totalTiles = GridSystem.Instance.Width * GridSystem.Instance.Height;
+
+        foreach (ServiceDefinition def in servicesData.services.Values)
         {
-            int totalTiles = GridSystem.Instance.Width * GridSystem.Instance.Height;
+            // الخدمة غير المفعّلة لا تطبّق تأثيرها
+            if (!HasService(def.id))
+                continue;
 
-            foreach (ServiceDefinition def in servicesData.services.Values)
-            {
-                int coveredCount = ServiceCoverageSystem.Instance.GetCoverage(def.id).Count;
-                float coveragePercent = totalTiles > 0 ? (float)coveredCount / totalTiles * 100f : 0f;
+            int coveredCount = ServiceCoverageSystem.Instance.GetCoverage(def.id).Count;
+            float coveragePercent = totalTiles > 0
+                ? (float)coveredCount / totalTiles * 100f
+                : 0f;
 
-                string metric = GetMetricId(def);
-                if (!string.IsNullOrEmpty(metric))
-                {
-                    float current = MetricsSystem.Instance.GetMetric(metric);
-                    MetricsSystem.Instance.SetMetric(metric, current + coveragePercent);
-                }
-            }
+            string metric = GetMetricId(def);
+            if (string.IsNullOrEmpty(metric))
+                continue;
+
+            float current = MetricsSystem.Instance.GetMetric(metric);
+            MetricsSystem.Instance.SetMetric(metric, current + coveragePercent);
         }
     }
 
