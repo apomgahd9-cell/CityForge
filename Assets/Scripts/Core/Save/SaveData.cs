@@ -14,5 +14,6 @@ public class SaveData
     public float taxIndustrial;
     public List<BuildingSaveData> buildings = new List<BuildingSaveData>();
     public List<RoadSaveData> roads = new List<RoadSaveData>();
+    public List<ZoneSaveData> zones = new List<ZoneSaveData>();
     public Dictionary<string, int> activeServices = new Dictionary<string, int>();
 }
