@@ -4,21 +4,24 @@ using System.Collections.Generic;
 [Serializable]
 public class GrowthProfileWrapper
 {
-    public Dictionary<string, GrowthStage> profiles;
+    public Dictionary<string, GrowthProfile> profiles;
+}
+
+[Serializable]
+public class GrowthProfile
+{
+    public string displayName;
+    public List<string> tags;
+    public List<GrowthStage> stages;
 }
 
 [Serializable]
 public class GrowthStage
 {
-    public List<string> tags;
-    public List<GrowthStageLevel> stages;
-}
-
-[Serializable]
-public class GrowthStageLevel
-{
     public int level;
+    public string label;
     public string upgradeTarget;
+    public string downgradeTarget;
     public List<GrowthRule> rules;
     public string growthModel;
     public List<GrowthRule> declineRules;
