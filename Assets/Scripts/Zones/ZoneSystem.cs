@@ -179,11 +179,57 @@ public class ZoneSystem : MonoBehaviour, ISaveable
 
     public void Save(SaveData data)
     {
-        // TODO: إضافة zones إلى SaveData عند توسيعه
+        if (data.zones == null)
+            data.zones = new List<ZoneSaveData>();
+        else
+            data.zones.Clear();
+
+        foreach (var kvp in zones)
+        {
+            ZoneData zone = kvp.Value;
+
+            data.zones.Add(new ZoneSaveData
+            {
+                gridX = zone.gridX,
+                gridY = zone.gridY,
+                zoneType = zone.zoneType,
+                density = zone.density,
+                maxBuildings = zone.maxBuildings
+            });
+        }
     }
 
     public void Load(SaveData data)
     {
-        // TODO: استعادة zones من SaveData عند توسيعه
+        zones.Clear();
+
+        if (data.zones == null) return;
+
+        foreach (ZoneSaveData saved in data.zones)
+        {
+            if (GridSystem.Instance != null &&
+                !GridSystem.Instance.IsValidGridPosition(saved.gridX, saved.gridY))
+            {
+                Debug.LogWarning($"Skipping zone at invalid position: ({saved.gridX}, {saved.gridY})");
+                continue;
+            }
+
+            Vector2Int pos = new Vector2Int(saved.gridX, saved.gridY);
+
+            if (zones.ContainsKey(pos))
+            {
+                Debug.LogWarning($"Duplicate zone at ({saved.gridX}, {saved.gridY}). Skipping.");
+                continue;
+            }
+
+            zones[pos] = new ZoneData
+            {
+                gridX = saved.gridX,
+                gridY = saved.gridY,
+                zoneType = saved.zoneType,
+                density = saved.density,
+                maxBuildings = saved.maxBuildings
+            };
+        }
     }
 }
