@@ -180,8 +180,6 @@ public class PlacementSystem : MonoBehaviour
             return false;
         }
 
-        OccupancyMap.Instance.OccupyArea(gridX, gridY, 1, 1);
-
         TileType tileType = zoneType switch
         {
             ZoneType.Residential => TileType.Residential,
@@ -232,10 +230,6 @@ public class PlacementSystem : MonoBehaviour
             Debug.LogWarning($"No zone at ({gridX}, {gridY}).");
             return false;
         }
-
-        int occupantId = OccupancyMap.Instance.GetOccupantId(gridX, gridY);
-        if (occupantId > 0)
-            OccupancyMap.Instance.FreeAreaByOccupantId(occupantId);
 
         ZoneSystem.Instance.RemoveZone(gridX, gridY);
 
