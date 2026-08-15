@@ -106,93 +106,140 @@ public class BuildingSpawner : MonoBehaviour, ISaveable
             return false;
         }
 
+        if (PlacementValidator.Instance == null)
+        {
+            Debug.LogWarning("ReplaceBuilding: PlacementValidator not available.");
+            return false;
+        }
+
+        // طبقة التحقق الموحدة قبل أي تغيير
+        if (!PlacementValidator.Instance.ValidateReplacement(
+            building,
+            newDef,
+            out int gridX,
+            out int gridY,
+            out string validationError))
+        {
+            Debug.LogWarning($"ReplaceBuilding rejected: {validationError}");
+            return false;
+        }
+
+        if (GridSystem.Instance == null || OccupancyMap.Instance == null)
+        {
+            Debug.LogWarning("ReplaceBuilding: GridSystem or OccupancyMap not available.");
+            return false;
+        }
+
         int oldWidth = building.Definition.size != null ? building.Definition.size.width : 1;
         int oldDepth = building.Definition.size != null ? building.Definition.size.depth : 1;
         int newWidth = newDef.size != null ? newDef.size.width : 1;
         int newDepth = newDef.size != null ? newDef.size.depth : 1;
 
         string oldName = building.Definition.displayName;
-
-        if (OccupancyMap.Instance == null || GridSystem.Instance == null)
-        {
-            building.ReplaceDefinition(newDef);
-            MetricsSystem.Instance?.RecalculateAll();
-            Debug.Log($"Building replaced: {oldName} → {newDef.displayName}");
-            return true;
-        }
-
-        if (!GridSystem.Instance.WorldToGrid(building.Position, out int gridX, out int gridY))
-        {
-            Debug.LogWarning("ReplaceBuilding: cannot convert position to grid.");
-            return false;
-        }
-
         int oldOccupantId = building.OccupantId;
         TileType oldTileType = GetTileTypeForDefinition(building.Definition);
 
+        // 1) تحرير الإشغال القديم
         if (oldOccupantId > 0)
+        {
             OccupancyMap.Instance.FreeAreaByOccupantId(oldOccupantId);
-
-        for (int x = gridX; x < gridX + oldWidth; x++)
-        {
-            for (int y = gridY; y < gridY + oldDepth; y++)
-            {
-                GridSystem.Instance.SetTile(x, y, new TileData { gridX = x, gridY = y, type = TileType.Empty });
-            }
         }
 
-        if (!OccupancyMap.Instance.IsAreaFree(gridX, gridY, newWidth, newDepth))
-        {
-            Debug.LogWarning($"ReplaceBuilding: new area not free. Rolling back.");
-            RollbackOccupancy(gridX, gridY, oldWidth, oldDepth, oldOccupantId, oldTileType, building);
-            return false;
-        }
+        // 2) مسح البلاطات القديمة
+        ClearTiles(gridX, gridY, oldWidth, oldDepth);
 
+        // 3) حجز المساحة الجديدة
         int newOccupantId = OccupancyMap.Instance.OccupyArea(gridX, gridY, newWidth, newDepth);
+
         if (newOccupantId < 0)
         {
             Debug.LogError("ReplaceBuilding: OccupyArea failed. Rolling back.");
-            RollbackOccupancy(gridX, gridY, oldWidth, oldDepth, oldOccupantId, oldTileType, building);
+            RollbackState(building, gridX, gridY, oldWidth, oldDepth, oldOccupantId, oldTileType);
             return false;
         }
 
+        // 4) تغيير التعريف بعد نجاح الحجز
         building.ReplaceDefinition(newDef);
         building.SetOccupantId(newOccupantId);
 
-        TileType newTileType = GetTileTypeForDefinition(newDef);
-        for (int x = gridX; x < gridX + newWidth; x++)
-        {
-            for (int y = gridY; y < gridY + newDepth; y++)
-            {
-                GridSystem.Instance.SetTile(x, y, new TileData { gridX = x, gridY = y, type = newTileType });
-            }
-        }
+        // 5) تحديث البلاطات الجديدة
+        SetTiles(gridX, gridY, newWidth, newDepth, GetTileTypeForDefinition(newDef));
 
+        // 6) إعادة حساب المقاييس
         MetricsSystem.Instance?.RecalculateAll();
+
         Debug.Log($"Building replaced: {oldName} → {newDef.displayName} ({oldWidth}x{oldDepth} → {newWidth}x{newDepth})");
         return true;
     }
 
-    private void RollbackOccupancy(int gridX, int gridY, int width, int depth, int occupantId, TileType tileType, BuildingInstance building)
+    private void RollbackState(
+        BuildingInstance building,
+        int gridX,
+        int gridY,
+        int oldWidth,
+        int oldDepth,
+        int oldOccupantId,
+        TileType oldTileType)
     {
-        if (OccupancyMap.Instance != null)
+        if (OccupancyMap.Instance == null || GridSystem.Instance == null)
         {
-            if (occupantId > 0)
-            {
-                OccupancyMap.Instance.FreeAreaByOccupantId(occupantId);
-            }
-            int rollbackId = OccupancyMap.Instance.OccupyArea(gridX, gridY, width, depth);
-            building.SetOccupantId(rollbackId);
+            Debug.LogError("RollbackState: cannot rollback without OccupancyMap and GridSystem.");
+            building.SetOccupantId(0);
+            return;
         }
 
-        if (GridSystem.Instance != null)
+        // إزالة أي إشغال جزئي محتمل
+        if (building.OccupantId > 0 && building.OccupantId != oldOccupantId)
         {
-            for (int x = gridX; x < gridX + width; x++)
+            OccupancyMap.Instance.FreeAreaByOccupantId(building.OccupantId);
+        }
+
+        // محاولة استعادة المساحة القديمة
+        int rollbackId = OccupancyMap.Instance.OccupyArea(gridX, gridY, oldWidth, oldDepth);
+
+        if (rollbackId < 0)
+        {
+            Debug.LogError("RollbackState: failed to reoccupy old area. Replacement failed and rollback incomplete. System may be inconsistent.");
+            building.SetOccupantId(0);
+            return;
+        }
+
+        building.SetOccupantId(rollbackId);
+        SetTiles(gridX, gridY, oldWidth, oldDepth, oldTileType);
+    }
+
+    private void ClearTiles(int startX, int startY, int areaWidth, int areaDepth)
+    {
+        if (GridSystem.Instance == null) return;
+
+        for (int x = startX; x < startX + areaWidth; x++)
+        {
+            for (int y = startY; y < startY + areaDepth; y++)
             {
-                for (int y = gridY; y < gridY + depth; y++)
+                GridSystem.Instance.SetTile(x, y, new TileData
                 {
-                    GridSystem.Instance.SetTile(x, y, new TileData { gridX = x, gridY = y, type = tileType });
-                }
+                    gridX = x,
+                    gridY = y,
+                    type = TileType.Empty
+                });
+            }
+        }
+    }
+
+    private void SetTiles(int startX, int startY, int areaWidth, int areaDepth, TileType tileType)
+    {
+        if (GridSystem.Instance == null) return;
+
+        for (int x = startX; x < startX + areaWidth; x++)
+        {
+            for (int y = startY; y < startY + areaDepth; y++)
+            {
+                GridSystem.Instance.SetTile(x, y, new TileData
+                {
+                    gridX = x,
+                    gridY = y,
+                    type = tileType
+                });
             }
         }
     }
@@ -222,6 +269,7 @@ public class BuildingSpawner : MonoBehaviour, ISaveable
         {
             Vector3 position = new Vector3(saved.positionX, saved.positionY, saved.positionZ);
             BuildingInstance instance = SpawnBuilding(saved.definitionId, position);
+
             if (instance != null)
             {
                 instance.SetLevel(saved.currentLevel);
@@ -238,19 +286,7 @@ public class BuildingSpawner : MonoBehaviour, ISaveable
                         instance.SetOccupantId(occupantId);
 
                         TileType tileType = GetTileTypeForDefinition(def);
-
-                        for (int x = gridX; x < gridX + areaWidth; x++)
-                        {
-                            for (int y = gridY; y < gridY + areaDepth; y++)
-                            {
-                                GridSystem.Instance.SetTile(x, y, new TileData
-                                {
-                                    gridX = x,
-                                    gridY = y,
-                                    type = tileType
-                                });
-                            }
-                        }
+                        SetTiles(gridX, gridY, areaWidth, areaDepth, tileType);
                     }
                 }
             }
