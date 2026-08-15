@@ -15,6 +15,87 @@ public class PlacementValidator : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
+    /// <summary>
+    /// تحقق خاص بعملية الاستبدال. يتجاهل إشغال المبنى القديم نفسه،
+    /// ويسمح فقط بوجود إشغال يعود إلى المبنى الحالي.
+    /// </summary>
+    public bool ValidateReplacement(
+        BuildingInstance currentBuilding,
+        BuildingDefinition newDef,
+        out int gridX,
+        out int gridY,
+        out string error)
+    {
+        gridX = 0;
+        gridY = 0;
+        error = null;
+
+        if (currentBuilding == null)
+        {
+            error = "Current building is null.";
+            return false;
+        }
+
+        if (newDef == null)
+        {
+            error = "New building definition is null.";
+            return false;
+        }
+
+        if (GridSystem.Instance == null)
+        {
+            error = "GridSystem not found.";
+            return false;
+        }
+
+        if (OccupancyMap.Instance == null)
+        {
+            error = "OccupancyMap not found.";
+            return false;
+        }
+
+        if (!GridSystem.Instance.WorldToGrid(currentBuilding.Position, out gridX, out gridY))
+        {
+            error = "Building position is outside grid bounds.";
+            return false;
+        }
+
+        int newWidth = newDef.size != null ? newDef.size.width : 1;
+        int newDepth = newDef.size != null ? newDef.size.depth : 1;
+
+        if (newWidth <= 0 || newDepth <= 0)
+        {
+            error = "Invalid replacement building size.";
+            return false;
+        }
+
+        for (int x = gridX; x < gridX + newWidth; x++)
+        {
+            for (int y = gridY; y < gridY + newDepth; y++)
+            {
+                if (!GridSystem.Instance.IsValidGridPosition(x, y))
+                {
+                    error = $"Replacement area out of bounds at ({x},{y}).";
+                    return false;
+                }
+
+                int occupant = OccupancyMap.Instance.GetOccupantId(x, y);
+
+                // السماح فقط بالخلايا المشغولة بالمبنى الحالي
+                if (occupant != 0 && occupant != currentBuilding.OccupantId)
+                {
+                    error = $"Replacement area blocked by another occupant at ({x},{y}).";
+                    return false;
+                }
+            }
+        }
+
+        if (!ValidateZone(newDef, gridX, gridY, out error))
+            return false;
+
+        return true;
+    }
+
     public bool Validate(BuildingDefinition def, Vector3 worldPosition, out int gridX, out int gridY, out string error)
     {
         gridX = 0;
@@ -85,6 +166,7 @@ public class PlacementValidator : MonoBehaviour
         }
 
         string requiredTag = null;
+
         if (def.zoneTags.Contains("residential"))
             requiredTag = "residential";
         else if (def.zoneTags.Contains("commercial"))
