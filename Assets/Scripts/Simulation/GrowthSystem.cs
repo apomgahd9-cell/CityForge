@@ -57,7 +57,7 @@ public class GrowthSystem : MonoBehaviour
 
     private void ProcessGrowth()
     {
-        if (BuildingSpawner.Instance == null || MetricsSystem.Instance == null || ZoneSystem.Instance == null)
+        if (PlacementSystem.Instance == null || MetricsSystem.Instance == null || ZoneSystem.Instance == null)
             return;
 
         float residentialDemand = MetricsSystem.Instance.GetMetric("residential_demand");
@@ -103,15 +103,6 @@ public class GrowthSystem : MonoBehaviour
         BuildingDefinition def = DataRegistry.Instance.GetBuilding(buildingId);
         if (def == null) return false;
 
-        if (GridSystem.Instance == null) return false;
-
-        int areaWidth = def.size != null ? def.size.width : 1;
-        int areaDepth = def.size != null ? def.size.depth : 1;
-
-        if (OccupancyMap.Instance != null &&
-            !OccupancyMap.Instance.IsAreaFree(zone.gridX, zone.gridY, areaWidth, areaDepth))
-            return false;
-
         if (!CheckRules(currentStage.rules)) return false;
 
         float chance = CalculateChance(currentStage.growthModel);
@@ -119,25 +110,12 @@ public class GrowthSystem : MonoBehaviour
         {
             Vector3 worldPos = GridSystem.Instance.GridToWorld(zone.gridX, zone.gridY);
 
-            BuildingInstance instance = BuildingSpawner.Instance.SpawnBuilding(buildingId, worldPos);
-            if (instance != null)
+            // البناء يتم عبر PlacementSystem بدلاً من استدعاء Spawner مباشرة
+            bool placed = PlacementSystem.Instance.PlaceBuilding(buildingId, worldPos);
+
+            if (placed)
             {
-                if (OccupancyMap.Instance != null)
-                {
-                    int occupantId = OccupancyMap.Instance.OccupyArea(zone.gridX, zone.gridY, areaWidth, areaDepth);
-                    instance.SetOccupantId(occupantId);
-                }
-
-                TileType tileType = GetTileTypeForZone(zoneType);
-                for (int x = zone.gridX; x < zone.gridX + areaWidth; x++)
-                {
-                    for (int y = zone.gridY; y < zone.gridY + areaDepth; y++)
-                    {
-                        GridSystem.Instance.SetTile(x, y, new TileData { gridX = x, gridY = y, type = tileType });
-                    }
-                }
-
-                Debug.Log($"Auto-built {buildingId} ({areaWidth}x{areaDepth}) at ({zone.gridX}, {zone.gridY})");
+                Debug.Log($"Auto-built {buildingId} at ({zone.gridX}, {zone.gridY}) [Level: {growthLevel}]");
                 return true;
             }
         }
@@ -186,6 +164,7 @@ public class GrowthSystem : MonoBehaviour
 
             string oldName = building.Definition.displayName;
             bool success = BuildingSpawner.Instance.ReplaceBuilding(building, newDef.id);
+
             if (success)
             {
                 Debug.Log($"{oldName} upgraded to {building.Definition.displayName} (Level {nextLevel})");
@@ -266,6 +245,7 @@ public class GrowthSystem : MonoBehaviour
 
                 string oldName = building.Definition.displayName;
                 bool success = BuildingSpawner.Instance.ReplaceBuilding(building, newDef.id);
+
                 if (success)
                 {
                     Debug.Log($"{oldName} downgraded to {building.Definition.displayName} (Level {previousLevel})");
